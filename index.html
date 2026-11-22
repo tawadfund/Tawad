@@ -71,13 +71,22 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px 6px
   <section class="login" id="loginV">
     <img src="/icon-192.png" alt="">
     <h1 style="margin:14px 0 4px">صندوق تواد</h1>
-    <p class="mut">ادخل برقم الهوية والرمز السري</p>
-    <form id="loginF" class="card" style="text-align:start">
-      <label>رقم الهوية<input id="lNid" inputmode="numeric" autocomplete="username" maxlength="10" required></label>
+    <p class="mut" id="lHint">ادخل برقم الهوية ورقم الجوال المسجل في الصندوق</p>
+    <form id="otpF" class="card" style="text-align:start">
+      <label>رقم الهوية<input id="oNid" inputmode="numeric" autocomplete="username" maxlength="10" required></label>
+      <label id="oPhoneL">رقم الجوال<input id="oPhone" inputmode="tel" placeholder="05xxxxxxxx" maxlength="14" required></label>
+      <label id="oCodeL" class="hide">رمز التحقق المرسل على الواتساب<input id="oCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label>
+      <p class="err" id="oErr"></p>
+      <button class="pri" style="width:100%" id="oBtn">إرسال رمز التحقق عبر واتساب</button>
+      <button type="button" id="oBack" class="hide" style="width:100%;margin-top:8px">تغيير البيانات أو إعادة الإرسال</button>
+    </form>
+    <form id="loginF" class="card hide" style="text-align:start">
+      <label>رقم الهوية<input id="lNid" inputmode="numeric" maxlength="10" required></label>
       <label>الرمز السري<input id="lPin" type="password" inputmode="numeric" autocomplete="current-password" required></label>
       <p class="err" id="lErr"></p>
       <button class="pri" style="width:100%">دخول</button>
     </form>
+    <p><a href="#" id="swLogin" class="mut">دخول برمز سري (للإدارة)</a></p>
     <p class="mut">نسخة تجريبية · للاستفسار تواصل مع إدارة الصندوق</p>
   </section>
 
@@ -146,13 +155,46 @@ $('loginF').onsubmit = async e => {
   btn.disabled = false;
   if(error) $('lErr').textContent = 'رقم الهوية أو الرمز غير صحيح';
 };
+// ---------- الدخول بالواتساب ----------
+const OTP_MSG = {not_found:'البيانات غير مطابقة لأي عضو مسجل، تواصل مع إدارة الصندوق', too_many:'محاولات كثيرة، حاول بعد 15 دقيقة', whatsapp_failed:'تعذّر إرسال رسالة الواتساب، حاول لاحقاً', bad_code:'الرمز غير صحيح', expired:'انتهت صلاحية الرمز، اطلب رمزاً جديداً', locked:'تم قفل الرمز بعد محاولات خاطئة، اطلب رمزاً جديداً', bad_id:'رقم الهوية 10 أرقام', server:'خطأ في الخادم، حاول لاحقاً'};
+let otpStage = 'send';
+async function otpCall(body){
+  const r = await fetch(SB_URL + '/functions/v1/otp', {method:'POST', headers:{'Content-Type':'application/json', apikey: SB_KEY}, body: JSON.stringify(body)});
+  let d = {}; try { d = await r.json(); } catch(e) {}
+  if(!r.ok) throw new Error((OTP_MSG[d.error] || 'تعذّر الاتصال') + (d.error==='bad_code' && d.left >= 0 ? ` — باقي ${d.left} محاولات` : ''));
+  return d;
+}
+function otpStageSet(st){
+  otpStage = st;
+  $('oCodeL').classList.toggle('hide', st==='send'); $('oBack').classList.toggle('hide', st==='send');
+  $('oPhoneL').classList.toggle('hide', st!=='send'); $('oNid').readOnly = st!=='send';
+  $('oBtn').textContent = st==='send' ? 'إرسال رمز التحقق عبر واتساب' : 'دخول';
+  if(st==='verify') setTimeout(()=>$('oCode').focus(), 50);
+}
+$('otpF').onsubmit = async e => {
+  e.preventDefault(); $('oErr').textContent = ''; const btn = $('oBtn'); btn.disabled = true;
+  const nid = $('oNid').value.trim();
+  try{
+    if(!/^\d{10}$/.test(nid)) throw new Error(OTP_MSG.bad_id);
+    if(otpStage==='send'){
+      const d = await otpCall({action:'send', nid, phone: $('oPhone').value});
+      $('lHint').innerHTML = `أرسلنا رمز التحقق على الواتساب للرقم <bdi dir="ltr">${esc(d.masked)}</bdi>`; otpStageSet('verify');
+    } else {
+      const d = await otpCall({action:'verify', nid, code: $('oCode').value});
+      const {error} = await sb.auth.verifyOtp({token_hash: d.token_hash, type:'magiclink'}); if(error) throw error;
+    }
+  } catch(err){ $('oErr').textContent = errMsg(err); }
+  btn.disabled = false;
+};
+$('oBack').onclick = () => { otpStageSet('send'); $('oCode').value=''; $('oErr').textContent=''; $('lHint').textContent='ادخل برقم الهوية ورقم الجوال المسجل في الصندوق'; };
+$('swLogin').onclick = e => { e.preventDefault(); const pin = $('loginF').classList.toggle('hide') === false; $('otpF').classList.toggle('hide', pin); $('swLogin').textContent = pin ? 'الدخول بالواتساب' : 'دخول برمز سري (للإدارة)'; };
 $('logout').onclick = async () => { await sb.auth.signOut(); };
 sb.auth.onAuthStateChange((ev, session) => { if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(ev)) setTimeout(() => boot(session), 0); });
 
 async function boot(session){
   if(!session){ me = null; $('loginV').classList.remove('hide'); $('mainV').classList.add('hide'); return; }
   const {data} = await sb.from('members').select('*').eq('user_id', session.user.id).maybeSingle();
-  if(!data){ $('lErr').textContent = 'حسابك غير مرتبط بعضو نشط، تواصل مع الإدارة'; await sb.auth.signOut(); return; }
+  if(!data){ $('lErr').textContent = $('oErr').textContent = 'حسابك غير مرتبط بعضو نشط، تواصل مع الإدارة'; await sb.auth.signOut(); return; }
   me = data;
   const {data: ad} = await sb.rpc('admin_names'); admins = {}; (ad||[]).forEach(a => admins[a.id] = a);
   $('who').textContent = me.full_name + (me.is_admin ? ' · أدمن' : '');
