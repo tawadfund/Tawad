@@ -130,6 +130,10 @@ const SUB = 250;
 const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
 const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
 const FEE_RATE = 0.001;    // رسوم القرض الاختيارية: 1 بالألف من مبلغ القرض
+const FEE_FROM_SUBS = 'رسوم قروض مخصومة من الاشتراكات';
+// الاشتراكات المتوقعة: 250 عن كل شهر من ديسمبر 2012 إلى الشهر المحدد (نفس قاعدة الإكسل)
+const expectedSubs = ym => { const [y, m] = String(ym).slice(0, 7).split('-').map(Number); return Math.max(0, (y - 2012) * 12 + m - 11) * SUB; };
+const nowYM = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
 const mLink = (id, name) => me && me.is_admin && id ? `<a href="#member-${id}">${esc(name)}</a>` : esc(name);
 const feeDueOf = m => +(m && m.fee_due) || 0;   // رسوم القروض بأثر رجعي: 1 بالألف من كل قرض سابق
 const OPEN_NOTE = 'رصيد افتتاحي';
@@ -305,9 +309,12 @@ async function memberPage(m, self){
     <div class="kpi key"><span class="mut">الحد الائتماني (${LOAN_MULT} أضعاف المدفوع، حده الأعلى ${fmt(LOAN_CAP)})</span><b>${fmt(limit)}</b></div>
     <div class="kpi"><span class="mut">رصيد القرض الحالي</span><b>${fmt(bal)}</b></div>
     <div class="kpi"><span class="mut">المتاح ${self ? 'لي' : 'له'}</span><b>${fmt(avail)}</b></div></div>`;
-  const myFee = (tx||[]).filter(t => t.kind==='fee' && !t.loan_id).reduce((s,t) => s + +t.amount, 0);
-  const myDue = feeDueOf(m);
-  if(myDue > 0 || myFee > 0) h += `<div class="rules">رسوم القروض (1 بالألف من كل قرض): المستحق <b>${fmt(myDue)}</b> · المدفوع <b>${fmt(myFee)}</b> ${myFee >= myDue ? '<span class="chip">مسددة</span>' : `<span class="chip bad">استحقاق رسوم ${fmt(myDue - myFee)}</span>`}</div>`;
+  const feeTx = (tx||[]).filter(t => t.kind==='fee' && !t.loan_id);
+  const fromSubs = feeTx.filter(t => (t.note || '').startsWith(FEE_FROM_SUBS)).reduce((s,t) => s + +t.amount, 0);
+  const myFee = feeTx.reduce((s,t) => s + +t.amount, 0), myDue = feeDueOf(m);
+  if(myDue > 0 || myFee > 0) h += `<div class="rules">رسوم القروض (1 بالألف من كل قرض): <b>${fmt(myDue)}</b> ريال · دفعتها رسوماً <b>${fmt(myFee - fromSubs)}</b>${fromSubs ? ` · خُصم من الاشتراكات <b>${fmt(fromSubs)}</b>` : ''} ${myFee >= myDue - 0.001 ? '<span class="chip">مسددة</span>' : `<span class="chip bad">متبقي ${fmt(myDue - myFee)}</span>`}</div>`;
+  const expSubs = expectedSubs(nowYM()), diff = subs - expSubs;
+  if(!m.status || m.status === 'active') h += `<div class="rules">الاشتراكات حتى ${monthTxt(nowYM() + '-01')}: المتوقع <b>${fmt(expSubs)}</b> · المدفوع <b>${fmt(subs)}</b> ${Math.abs(diff) < 0.01 ? '<span class="chip">منتظم</span>' : diff > 0 ? `<span class="chip">مقدم ${fmt(diff)}</span>` : `<span class="chip bad">متعثر ${fmt(-diff)}</span>`}</div>`;
   if(self) h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
   else if(open) h += `<div class="card highlight">عنده طلب قرض قيد الإجراء: <a href="#loan-${open.id}">${fmt(open.amount)} ريال — ${ST[open.status]}</a></div>`;
   if((hist||[]).length){ const tot = hist.reduce((s,x) => s + +x.amount, 0);
@@ -655,10 +662,12 @@ async function reportData(M){
   const subPaid = new Set(tx.filter(x => x.kind === 'subscription' && ym(x.period) === M && !isOpen(x)).map(x => x.member_id));
   const feeBy = {}; tx.filter(x => x.kind === 'fee' && !x.loan_id && upto(x)).forEach(x => feeBy[x.member_id] = (feeBy[x.member_id] || 0) + +x.amount);
   const feeLate = active.filter(m => (feeBy[m.id] || 0) < feeDueOf(m) - 0.001);
+  const subsBy = {}; tx.filter(x => x.kind === 'subscription' && upto(x)).forEach(x => subsBy[x.member_id] = (subsBy[x.member_id] || 0) + +x.amount);
+  const subLate = active.filter(m => (subsBy[m.id] || 0) < expectedSubs(M) - 0.01);
   const feesIn = sum(tx.filter(x => x.kind === 'fee' && upto(x)), x => x.amount);
   const ledAll = (led||[]).filter(upto), ledIn = sum(ledAll.filter(x => x.kind === 'income'), x => x.amount), ledOut = sum(ledAll.filter(x => x.kind === 'expense'), x => x.amount);
   return {...cur, owners: bankOwners(ms), activeCount: active.length, subPaidCount: active.filter(m => subPaid.has(m.id)).length,
-    outstanding, due, late, lateAmt, feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => feeDueOf(m) - (feeBy[m.id] || 0)),
+    outstanding, due, late, lateAmt, subLateCount: subLate.length, subLateAmt: sum(subLate, m => expectedSubs(M) - (subsBy[m.id] || 0)), feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => feeDueOf(m) - (feeBy[m.id] || 0)),
     feesIn, ledIn, ledOut, feesBalance: feesIn + ledIn - ledOut};
 }
 function reportBody(r){
@@ -679,6 +688,7 @@ function reportBody(r){
     ${row('عدد الأعضاء النشطين', r.activeCount)}
     ${row('دفعوا اشتراك هذا الشهر', r.subPaidCount + pct(r.subPaidCount, r.activeCount))}
     ${row('إجمالي المتبقي من القروض القائمة', fmt(r.outstanding))}
+    ${row('أعضاء عليهم اشتراكات متعثرة', `${r.subLateCount} — ${fmt(r.subLateAmt)} ريال`)}
     ${row('أقساط مستحقة هذا الشهر', r.due)}
     ${row('أقساط متعثرة هذا الشهر', r.late + pct(r.late, r.due) + (r.lateAmt ? ` — ${fmt(r.lateAmt)} ريال` : ''))}</tbody></table>
   <h3>4. بند الرسوم (منفصل عن رأس مال الصندوق)</h3><table><tbody>
