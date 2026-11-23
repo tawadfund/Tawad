@@ -51,6 +51,11 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px 6px
 .toast{position:fixed;bottom:20px;inset-inline:16px;margin:auto;max-width:420px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;z-index:30;text-align:center}
 .highlight{border-color:#e6c44d;box-shadow:0 0 0 3px #fff4c2}
 @media(max-width:600px){.g2{grid-template-columns:minmax(0,1fr)}.stack thead{display:none}.stack tr{display:grid;padding:8px 0;border-bottom:1px solid var(--line)}.stack td{border:0;padding:2px 0;display:flow-root;padding-inline-start:7.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mut);font-size:13px}}
+.bankf{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.bankf button{flex-direction:column;align-items:flex-start;gap:0;line-height:1.3;padding:6px 14px}.bankf small{font-size:12px;color:var(--mut)}.bankf button.on{background:var(--g);border-color:var(--g);color:#fff}.bankf button.on small{color:#d8ecd0}
+tr.grp th{background:var(--g2);color:var(--g);font-weight:700;font-size:14px;padding:7px 10px}
+.ent td input{display:inline-block;min-height:40px;margin:0;max-width:120px;text-align:end}
+.ent tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+@media(max-width:600px){.ent td input{max-width:none}}
 /* الاتفاقية */
 #agree{position:fixed;inset:0;background:#555;overflow:auto;z-index:25;padding:12px}
 #agree .bar{max-width:794px;margin:0 auto 10px;display:flex;gap:8px}
@@ -117,6 +122,27 @@ const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','
 const OPEN = ['queued','approved','docs_uploaded','verified','ready'];
 const ST = {queued:'في طابور الصرف', approved:'معتمد — بانتظار وثائقك', docs_uploaded:'الوثائق مرفوعة — بانتظار المراجعة', verified:'بانتظار الاعتماد الثاني', ready:'جاهز للصرف', disbursed:'مصروف', closed:'مغلق', rejected:'مرفوض', cancelled:'ملغي'};
 const KIND = {subscription:'اشتراك', fee:'رسوم', installment:'قسط', disbursement:'صرف قرض'};
+// ---------- حسابات البنوك: كل عضو يودع في بنك، وكل أدمن مسؤول عن بنوك (members.admin_banks) ----------
+const BANKS = {ahli:'الأهلي', riyad:'بنك الرياض', fransi:'الفرنسي', other:'بنك آخر'};
+const BANK_ORDER = Object.keys(BANKS);
+const SUB = 250;
+const digits = v => String(v || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[^\d]/g, '');
+function myBanks(){ return me?.admin_banks || []; }
+function bankOwners(ms){ const o = {}; ms.filter(m => m.is_admin && m.admin_banks).forEach(m => m.admin_banks.forEach(b => o[b] = (o[b] ? o[b] + ' و' : '') + String(m.full_name).split(' ')[0])); return o; }
+function bankFilter(){ let f = 'mine'; try{ f = localStorage.getItem('tawad-bankF') || 'mine'; }catch(e){} if(f === 'mine' && !myBanks().length) f = 'all'; return f; }
+function setBankFilter(v){ try{ localStorage.setItem('tawad-bankF', v); }catch(e){} }
+function bankMatch(m, f){ return f === 'all' ? true : f === 'mine' ? myBanks().includes(m.bank) : f === 'none' ? !m.bank : m.bank === f; }
+function bankSort(a, b){ const i = x => x.bank ? BANK_ORDER.indexOf(x.bank) : 99; return i(a) - i(b) || (a.member_no ?? 1e9) - (b.member_no ?? 1e9); }
+function bankTitle(b, owners){ return b ? `حساب ${BANKS[b] || b}${owners[b] ? ' — ' + esc(owners[b]) : ''}` : 'بدون بنك محدد'; }
+function bankChips(ms, f, owners, done){
+  const opts = [];
+  if(myBanks().length) opts.push(['mine', 'حساباتي', myBanks().map(b => BANKS[b]).join(' + ')]);
+  BANK_ORDER.forEach(b => { if(ms.some(m => m.bank === b)) opts.push([b, BANKS[b], owners[b] || '']); });
+  if(ms.some(m => !m.bank)) opts.push(['none', 'بدون بنك', 'حدّد بنكه']);
+  opts.push(['all', 'الكل', 'كل البنوك']);
+  return `<div class="bankf" role="group" aria-label="فرز حسب البنك">` + opts.map(([k, l, sub]) => { const list = ms.filter(m => bankMatch(m, k));
+    return `<button type="button" data-bf="${k}" class="${f === k ? 'on' : ''}" aria-pressed="${f === k}"><span>${l}</span><small>${esc(sub)} · ${done ? list.filter(done).length + '/' : ''}${list.length}${done ? ' مسجل' : ' عضو'}</small></button>`; }).join('') + `</div>`;
+}
 const ymd = d => d ? new Date(d).toLocaleDateString('en-GB') : '';
 const monthTxt = d => { if(!d) return ''; const x = new Date(d); return MONTHS[x.getMonth()] + ' ' + x.getFullYear(); };
 let me = null, admins = {}, route = '';
@@ -380,39 +406,114 @@ async function viewRequests(){
 
 // ---------- الأدمن: الأعضاء ----------
 async function viewMembers(){
-  const {data: ms, error} = await sb.from('members').select('*').order('member_no', {nullsFirst:false});
+  const {data: all, error} = await sb.from('members').select('*').order('member_no', {nullsFirst:false});
   if(error) throw error;
+  const owners = bankOwners(all); let f = bankFilter();
+  const bankSel = (v, attr) => `<select ${attr} style="min-height:36px;margin:0"><option value="">— بدون —</option>${BANK_ORDER.map(b => `<option value="${b}" ${v === b ? 'selected' : ''}>${BANKS[b]}</option>`).join('')}</select>`;
   $('view').innerHTML = `<div class="card"><h2>إضافة عضو</h2><form id="addM"><div class="g2">
     <label>رقم العضوية<input name="no" type="number"></label><label>رقم الهوية<input name="nid" inputmode="numeric" maxlength="10" required></label>
     <label>الاسم<input name="name" required></label><label>الجوال<input name="phone" inputmode="tel"></label>
-    <label>تاريخ الانضمام<input name="joined" type="date"></label><label>الصلاحية<select name="adm"><option value="0">عضو</option><option value="1">أدمن</option></select></label></div>
+    <label>تاريخ الانضمام<input name="joined" type="date"></label><label>يودع في بنك${bankSel(f !== 'all' && f !== 'none' && f !== 'mine' ? f : (myBanks()[0] || ''), 'name="bank"')}</label>
+    <label>الصلاحية<select name="adm"><option value="0">عضو</option><option value="1">أدمن</option></select></label></div>
     <button class="pri">إضافة</button></form>
     <p class="mut">لتفعيل دخوله: من Supabase ← Authentication ← Add user، البريد <b dir="ltr">رقم_الهوية@tawad.app</b> والرمز السري 6 أرقام، مع تفعيل Auto Confirm.</p></div>
-  <div class="card"><h2>الأعضاء (${ms.length})</h2><table class="stack"><thead><tr><th>#</th><th>الاسم</th><th>الهوية</th><th>الجوال</th><th>الحالة</th><th>الدخول</th></tr></thead><tbody>${ms.map(m => `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+  <div class="card"><h2>الأعضاء (<span id="mCount"></span>)</h2><div id="bf"></div>
+  <table class="stack"><thead><tr><th>#</th><th>الاسم</th><th>البنك</th><th>الهوية</th><th>الجوال</th><th>الحالة</th><th>الدخول</th></tr></thead><tbody id="mBody"></tbody></table></div>`;
+  function draw(){
+    const list = all.filter(m => bankMatch(m, f)).sort(bankSort); let last;
+    $('bf').innerHTML = bankChips(all, f, owners); $('mCount').textContent = list.length;
+    $('mBody').innerHTML = list.map(m => { const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="7">${bankTitle(m.bank, owners)}</th></tr>`) : '';
+      return g + `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''}</td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
+      || '<tr><td colspan="7" class="mut">لا يوجد أعضاء في هذا الحساب.</td></tr>';
+    $('mBody').querySelectorAll('[data-st]').forEach(s => s.onchange = () => run(null, async () => { const {error} = await sb.from('members').update({status: s.value}).eq('id', +s.dataset.st); if(error) throw error; all.find(m => m.id === +s.dataset.st).status = s.value; toast('تم التحديث'); }));
+    $('mBody').querySelectorAll('[data-bank]').forEach(s => s.onchange = () => run(s, async () => { const v = s.value || null;
+      const {error} = await sb.from('members').update({bank: v}).eq('id', +s.dataset.bank); if(error) throw error;
+      all.find(m => m.id === +s.dataset.bank).bank = v; toast(v ? 'نُقل إلى حساب ' + BANKS[v] : 'أُزيل البنك'); draw(); }));
+  }
+  $('bf').onclick = e => { const b = e.target.closest('[data-bf]'); if(!b) return; f = b.dataset.bf; setBankFilter(f); draw(); };
+  draw();
   $('addM').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
-    const {error} = await sb.from('members').insert({member_no: d.get('no') ? +d.get('no') : null, national_id: d.get('nid').trim(), full_name: d.get('name').trim(), phone: d.get('phone') || null, joined_on: d.get('joined') || null, is_admin: d.get('adm')==='1'});
+    const {error} = await sb.from('members').insert({member_no: d.get('no') ? +d.get('no') : null, national_id: d.get('nid').trim(), full_name: d.get('name').trim(), phone: d.get('phone') || null, joined_on: d.get('joined') || null, bank: d.get('bank') || null, is_admin: d.get('adm')==='1'});
     if(error) throw error; toast('تمت الإضافة'); render(); }); };
-  $('view').querySelectorAll('[data-st]').forEach(s => s.onchange = () => run(null, async () => { const {error} = await sb.from('members').update({status: s.value}).eq('id', +s.dataset.st); if(error) throw error; toast('تم التحديث'); }));
 }
 
-// ---------- الأدمن: الحركات ----------
+// ---------- الأدمن: الحركات (الإدخال الشهري حسب البنك) ----------
+let txMonth = null;
 async function viewTx(){
-  const [{data: ms}, {data: tx, error}, {data: loans}] = await Promise.all([
-    sb.from('members').select('id, full_name, member_no').order('member_no'),
-    sb.from('transactions').select('*, members!transactions_member_id_fkey(full_name)').order('created_at', {ascending:false}).limit(40),
-    sb.from('loans').select('id, member_id, total').eq('status','disbursed')
+  const now = new Date(); txMonth = txMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const period = txMonth + '-01';
+  const [{data: all, error}, {data: loans}, {data: monthTx, error: e2}, {data: tx}] = await Promise.all([
+    sb.from('members').select('id, full_name, member_no, bank, status, is_admin, admin_banks').order('member_no'),
+    sb.from('loans').select('id, member_id, total, installment').eq('status','disbursed'),
+    sb.from('transactions').select('member_id, kind, amount').eq('period', period),
+    sb.from('transactions').select('*, members!transactions_member_id_fkey(full_name)').order('created_at', {ascending:false}).limit(40)
   ]);
-  if(error) throw error;
-  const now = new Date(), cm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  $('view').innerHTML = `<div class="card"><h2>تسجيل حركة</h2><form id="txF"><div class="g2">
-    <label>العضو<select name="m" required>${ms.map(m => `<option value="${m.id}">${m.member_no ?? ''} — ${esc(m.full_name)}</option>`).join('')}</select></label>
-    <label>الشهر<input name="p" type="month" value="${cm}" required></label>
-    <label>النوع<select name="k">${Object.entries(KIND).filter(k => k[0] !== 'disbursement').map(([k,t]) => `<option value="${k}">${t}</option>`).join('')}</select></label>
-    <label>المبلغ<input name="a" type="number" min="1" value="250" required></label></div>
+  if(error) throw error; if(e2) throw e2;
+  const owners = bankOwners(all), ms = all.filter(m => !m.status || m.status === 'active');
+  let f = bankFilter();
+  const loanOf = id => (loans||[]).find(l => l.member_id === id);
+  const prev = {}; (monthTx||[]).forEach(t => { const p = prev[t.member_id] ||= {}; p[t.kind] = (p[t.kind] || 0) + Number(t.amount); });
+  const draft = {}; ms.forEach(m => draft[m.id] = {s:'', i:''});
+  const shown = () => ms.filter(m => bankMatch(m, f)).sort(bankSort);
+  const has = m => !!(prev[m.id]?.subscription || prev[m.id]?.installment || draft[m.id].s || draft[m.id].i);
+  const pending = () => ms.filter(m => draft[m.id].s || draft[m.id].i);
+  const prevTxt = m => { const p = prev[m.id]; if(!p) return '<span class="mut">—</span>'; return ['subscription','installment','fee'].filter(k => p[k]).map(k => `${KIND[k]} ${fmt(p[k])}`).join(' · '); };
+
+  $('view').innerHTML = `<div class="card">
+    <div class="row sp"><h2 style="margin:0">الإدخال الشهري</h2><label style="margin:0;min-width:170px">الشهر<input type="month" id="txM" value="${txMonth}"></label></div>
+    <p class="mut">اكتب المبلغ واضغط Enter أو السهم للأسفل للعضو التالي. الخانة الفاضية ما تنحفظ، واللي انسجل سابقاً لهذا الشهر يظهر في عمود "مسجل".</p>
+    <div id="bf"></div>
+    <div class="row" style="margin-bottom:8px"><button type="button" id="fillAll">تعبئة المستحق</button><button type="button" id="clearAll">تفريغ</button><button type="button" class="pri" data-save>حفظ</button></div>
+    <table class="stack ent" id="entT"><thead><tr><th>العضو</th><th>مسجل هالشهر</th><th class="n">اشتراك</th><th class="n">القسط المستحق</th><th class="n">قسط</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
+    <div class="row" style="margin-top:10px"><button type="button" class="pri" data-save>حفظ</button></div></div>
+  <div class="card"><h2>حركة مفردة (رسوم أو تعديل)</h2><form id="txF"><div class="g2">
+    <label>العضو<select name="m" required>${all.slice().sort(bankSort).map(m => `<option value="${m.id}">${m.member_no ?? ''} — ${esc(m.full_name)}${m.bank ? ' · ' + BANKS[m.bank] : ''}</option>`).join('')}</select></label>
+    <label>الشهر<input name="p" type="month" value="${txMonth}" required></label>
+    <label>النوع<select name="k">${Object.entries(KIND).filter(k => k[0] !== 'disbursement').map(([k,t]) => `<option value="${k}" ${k==='fee'?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label>المبلغ<input name="a" type="number" min="1" value="50" required></label></div>
     <p class="mut">قسط القرض يُربط تلقائياً بقرض العضو القائم.</p><button class="pri">حفظ</button></form></div>
   <div class="card"><h2>آخر الحركات</h2><table class="stack"><thead><tr><th>العضو</th><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${(tx||[]).map(t => `<tr><td>${esc(t.members?.full_name)}</td><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table></div>`;
+
+  function chips(){ $('bf').innerHTML = bankChips(ms, f, owners, has); }
+  function totals(){
+    const list = shown(), sumS = list.reduce((a, m) => a + (+draft[m.id].s || 0), 0), sumI = list.reduce((a, m) => a + (+draft[m.id].i || 0), 0), due = list.reduce((a, m) => a + (loanOf(m.id)?.installment || 0), 0);
+    $('entT').tFoot.innerHTML = list.length ? `<tr><td>المجموع · ${list.length} عضو</td><td>${list.filter(has).length}/${list.length} مسجل</td><td class="n">${fmt(sumS)}</td><td class="n">${fmt(due)}</td><td class="n">${fmt(sumI)}</td></tr>` : '';
+    const n = pending().length; document.querySelectorAll('[data-save]').forEach(b => b.textContent = n ? `حفظ (${n})` : 'حفظ');
+  }
+  function draw(){
+    let last; chips();
+    $('entT').tBodies[0].innerHTML = shown().map(m => { const l = loanOf(m.id), d = draft[m.id];
+      const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="5">${bankTitle(m.bank, owners)}</th></tr>`) : '';
+      return g + `<tr><td>${m.member_no ?? ''} — ${esc(m.full_name)}</td><td>${prevTxt(m)}</td>
+        <td class="n"><input data-m="${m.id}" data-k="s" inputmode="numeric" enterkeyhint="next" value="${d.s}" placeholder="0" aria-label="اشتراك ${esc(m.full_name)}"></td>
+        <td class="n">${l ? fmt(l.installment) : '—'}</td>
+        <td class="n">${l ? `<input data-m="${m.id}" data-k="i" inputmode="numeric" enterkeyhint="next" value="${d.i}" placeholder="0" aria-label="قسط ${esc(m.full_name)}">` : '—'}</td></tr>`; }).join('')
+      || '<tr><td colspan="5" class="mut">لا يوجد أعضاء نشطين في هذا الحساب.</td></tr>';
+    totals();
+  }
+  $('bf').onclick = e => { const b = e.target.closest('[data-bf]'); if(!b) return; f = b.dataset.bf; setBankFilter(f); draw(); };
+  $('entT').addEventListener('input', e => { const el = e.target; if(!el.dataset.m) return; el.value = digits(el.value); draft[el.dataset.m][el.dataset.k] = el.value; totals(); chips(); });
+  $('entT').addEventListener('keydown', e => { const el = e.target; if(!el.dataset.k || !['Enter','ArrowDown','ArrowUp'].includes(e.key)) return; e.preventDefault();
+    const ins = [...$('entT').querySelectorAll(`input[data-k="${el.dataset.k}"]`)], nx = ins[ins.indexOf(el) + (e.key === 'ArrowUp' ? -1 : 1)]; if(nx){ nx.focus(); nx.select(); } });
+  $('fillAll').onclick = () => { let n = 0; shown().forEach(m => { const p = prev[m.id] || {}, l = loanOf(m.id), d = draft[m.id];
+      if(!p.subscription && !d.s){ d.s = String(SUB); n++; } if(l && !p.installment && !d.i){ d.i = String(l.installment); n++; } });
+    draw(); toast(n ? 'تمت تعبئة المستحق لغير المسجلين — عدّل الاستثناءات ثم احفظ' : 'كل الأعضاء هنا مسجلين لهذا الشهر'); };
+  $('clearAll').onclick = () => { shown().forEach(m => draft[m.id] = {s:'', i:''}); draw(); };
+  $('txM').onchange = e => { if(pending().length && !confirm('فيه مبالغ ما انحفظت، تبي تغيّر الشهر وتتركها؟')){ e.target.value = txMonth; return; } txMonth = e.target.value || txMonth; render(); };
+  document.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
+    const rows = [];
+    for(const m of pending()){ const d = draft[m.id];
+      if(+d.s) rows.push({member_id: m.id, period, kind: 'subscription', amount: +d.s, loan_id: null, created_by: me.id});
+      if(+d.i){ const l = loanOf(m.id); if(!l){ toast(`${m.full_name}: ما عليه قرض قائم`); return; } rows.push({member_id: m.id, period, kind: 'installment', amount: +d.i, loan_id: l.id, created_by: me.id}); } }
+    if(!rows.length){ toast('ما فيه مبالغ للحفظ'); return; }
+    const total = rows.reduce((a, r) => a + r.amount, 0), banks = [...new Set(pending().map(m => m.bank ? BANKS[m.bank] : 'بدون بنك'))].join('، ');
+    dialog('حفظ حركات ' + monthTxt(period), `<p>${rows.length} حركة بمجموع <b>${fmt(total)}</b> ريال<br><span class="mut">الحسابات: ${esc(banks)}</span></p>`, async () => {
+      const {error} = await sb.from('transactions').insert(rows); if(error) throw error; toast('تم حفظ ' + rows.length + ' حركة'); render(); }, 'حفظ');
+  });
+  draw();
+
   $('txF').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
-    const mid = +d.get('m'), kind = d.get('k'); const loan = (loans||[]).find(l => l.member_id === mid);
+    const mid = +d.get('m'), kind = d.get('k'); const loan = loanOf(mid);
     if(kind==='installment' && !loan) throw new Error('هذا العضو ليس عليه قرض قائم');
     const {error} = await sb.from('transactions').insert({member_id: mid, period: d.get('p') + '-01', kind, amount: +d.get('a'), loan_id: kind==='installment' ? loan.id : null, created_by: me.id});
     if(error) throw error; toast('تم الحفظ'); render(); }); };
