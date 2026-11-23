@@ -126,6 +126,9 @@ const KIND = {subscription:'اشتراك', fee:'رسوم', installment:'قسط',
 const BANKS = {ahli:'الأهلي', riyad:'بنك الرياض', fransi:'الفرنسي', other:'بنك آخر'};
 const BANK_ORDER = Object.keys(BANKS);
 const SUB = 250;
+const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
+const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
+let myAvail = 0;
 const digits = v => String(v || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[^\d]/g, '');
 function myBanks(){ return me?.admin_banks || []; }
 function bankOwners(ms){ const o = {}; ms.filter(m => m.is_admin && m.admin_banks).forEach(m => m.admin_banks.forEach(b => o[b] = (o[b] ? o[b] + ' و' : '') + String(m.full_name).split(' ')[0])); return o; }
@@ -251,11 +254,12 @@ async function viewMe(){
   const active = (loans||[]).find(l => l.status==='disbursed');
   const bal = active ? active.total - paidOf(active.id) : 0;
   const open = (loans||[]).find(l => OPEN.includes(l.status));
+  const limit = Math.min(subs * LOAN_MULT, LOAN_CAP); myAvail = Math.max(0, limit - bal);
   let h = `<div class="kpis">
     <div class="kpi"><span class="mut">إجمالي اشتراكاتي</span><b>${fmt(subs)}</b></div>
-    <div class="kpi key"><span class="mut">الحد الائتماني (10 أضعاف)</span><b>${fmt(subs*10)}</b></div>
+    <div class="kpi key"><span class="mut">الحد الائتماني (${LOAN_MULT} أضعاف المدفوع، حده الأعلى ${fmt(LOAN_CAP)})</span><b>${fmt(limit)}</b></div>
     <div class="kpi"><span class="mut">رصيد قرضي الحالي</span><b>${fmt(bal)}</b></div>
-    <div class="kpi"><span class="mut">المتاح لي</span><b>${fmt(Math.max(0, subs*10 - bal))}</b></div></div>`;
+    <div class="kpi"><span class="mut">المتاح لي</span><b>${fmt(myAvail)}</b></div></div>`;
   h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
   const past = (loans||[]).filter(l => !OPEN.includes(l.status));
   if(past.length) h += `<div class="card"><h2>قروضي</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
@@ -293,6 +297,7 @@ async function openLoanCard(l, q){
 function bindMe(open){
   const f = $('reqF');
   if(f) f.onsubmit = e => { e.preventDefault(); const d = new FormData(f); run(e.submitter, async () => {
+    if(+d.get('amount') > myAvail) throw new Error(`المبلغ أكبر من المتاح لك (${fmt(myAvail)} ريال)`);
     const {error} = await sb.rpc('request_loan', {p_amount: +d.get('amount'), p_note: d.get('note') || null}); if(error) throw error;
     toast('تم استلام طلبك'); render(); }); };
   if($('cancelReq')) $('cancelReq').onclick = e => dialog('إلغاء الطلب', '<p>متأكد من إلغاء طلبك؟ ستفقد ترتيبك في الطابور.</p>', async () => {
