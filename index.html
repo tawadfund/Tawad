@@ -130,8 +130,10 @@ const SUB = 250;
 const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
 const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
 const FEE_RATE = 0.001;    // رسوم القرض الاختيارية: 1 بالألف من مبلغ القرض
-const MEMBER_FEE = 350;    // رسوم العضوية على كل عضو
+const mLink = (id, name) => me && me.is_admin && id ? `<a href="#member-${id}">${esc(name)}</a>` : esc(name);
+const feeDueOf = m => +(m && m.fee_due) || 0;   // رسوم القروض بأثر رجعي: 1 بالألف من كل قرض سابق
 const OPEN_NOTE = 'رصيد افتتاحي';
+const ibanOk = v => { const s = String(v || '').replace(/\s/g, '').toUpperCase(); if(!/^SA\d{22}$/.test(s)) return false; const t = s.slice(4) + s.slice(0, 4); let r = 0; for(const c of t){ const d = isNaN(c) ? String(c.charCodeAt(0) - 55) : c; for(const x of d) r = (r * 10 + +x) % 97; } return r === 1; };
 const feeOf = a => Math.round((+a || 0) * FEE_RATE * 100) / 100;
 let myAvail = 0;
 // ---------- المستندات: الاتفاقيات والحوالات المجدولة وإشعارات الحوالة (حالي / سابق) ----------
@@ -141,7 +143,7 @@ async function docsHtml(memberId){
     sb.from('member_docs').select('*').eq('member_id', memberId).order('doc_date', {ascending:false}),
     sb.from('loans').select('id, status, agreement_path, standing_order_path, receipt_path, disbursed_at, created_at').eq('member_id', memberId)
   ]);
-  if(error) return '';
+  if(error) return `<div class="card"><h2>المستندات</h2><p class="err">تعذّر تحميل المستندات: ${esc(errMsg(error))}</p></div>`;
   const list = (docs||[]).map(d => ({kind:d.kind, title:d.title, date:d.doc_date, path:d.path, current:d.is_current}));
   // مستندات القروض اللي انصرفت من المنصة نفسها
   for(const l of (loans||[])){
@@ -269,39 +271,60 @@ function render(){
   const tabs = [['me','حسابي']];
   if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['report','التقرير'],['fees','بند الرسوم'],['settings','الإعدادات']);
   route = (location.hash.slice(1) || 'me').split('-')[0];
-  if(!tabs.some(t => t[0]===route) && route !== 'loan') route = 'me';
+  if(!tabs.some(t => t[0]===route) && route !== 'loan' && !(route === 'member' && me.is_admin)) route = 'me';
   $('tabs').innerHTML = tabs.map(([k,t]) => `<a href="#${k}" class="${route===k?'on':''}">${t}</a>`).join('');
   $('view').innerHTML = '<p class="mut">جارٍ التحميل…</p>';
-  ({me:viewMe, requests:viewRequests, members:viewMembers, tx:viewTx, report:viewReport, fees:viewFees, settings:viewSettings, loan:viewLoanRoute}[route])().catch(e => $('view').innerHTML = `<p class="err">${esc(errMsg(e))}</p>`);
+  ({me:viewMe, requests:viewRequests, members:viewMembers, tx:viewTx, report:viewReport, fees:viewFees, settings:viewSettings, loan:viewLoanRoute, member:viewMemberRoute}[route])().catch(e => $('view').innerHTML = `<p class="err">${esc(errMsg(e))}</p>`);
 }
 
 // ---------- العضو ----------
-async function viewMe(){
-  const [{data: tx}, {data: loans}, {data: q}] = await Promise.all([
-    sb.from('transactions').select('*').eq('member_id', me.id).order('period', {ascending:false}),
-    sb.from('loans').select('*').eq('member_id', me.id).order('created_at', {ascending:false}),
-    sb.rpc('my_queue')
+async function viewMe(){ return memberPage(me, true); }
+async function viewMemberRoute(){
+  const id = +location.hash.split('-')[1];
+  const {data: m} = await sb.from('members').select('*').eq('id', id).maybeSingle();
+  if(!m){ $('view').innerHTML = '<p class="mut">العضو غير موجود.</p>'; return; }
+  return memberPage(m, false);
+}
+async function memberPage(m, self){
+  const [{data: tx}, {data: loans}, {data: q}, {data: hist}] = await Promise.all([
+    sb.from('transactions').select('*').eq('member_id', m.id).order('period', {ascending:false}),
+    sb.from('loans').select('*').eq('member_id', m.id).order('created_at', {ascending:false}),
+    self ? sb.rpc('my_queue') : Promise.resolve({data: []}),
+    sb.from('loan_history').select('*').eq('member_id', m.id).order('loan_date')
   ]);
   const subs = (tx||[]).filter(t => t.kind==='subscription').reduce((s,t) => s + +t.amount, 0);
   const paidOf = id => (tx||[]).filter(t => t.kind==='installment' && t.loan_id===id).reduce((s,t)=>s + +t.amount, 0);
   const active = (loans||[]).find(l => l.status==='disbursed');
   const bal = active ? active.total - paidOf(active.id) : 0;
   const open = (loans||[]).find(l => OPEN.includes(l.status));
-  const limit = Math.min(subs * LOAN_MULT, LOAN_CAP); myAvail = Math.max(0, limit - bal);
-  let h = `<div class="kpis">
-    <div class="kpi"><span class="mut">إجمالي اشتراكاتي</span><b>${fmt(subs)}</b></div>
+  const limit = Math.min(subs * LOAN_MULT, LOAN_CAP), avail = Math.max(0, limit - bal); if(self) myAvail = avail;
+  const my = self ? 'ي' : '';
+  let h = self ? '' : `<p><a href="#members">← الأعضاء</a></p><div class="card"><div class="row sp"><h2 style="margin:0">${esc(m.full_name)}</h2><span class="chip">${m.member_no ?? ''}${m.bank ? ' · ' + BANKS[m.bank] : ''}${m.status && m.status !== 'active' ? ' · ' + ({withdrawn:'منسحب', deceased:'متوفى'}[m.status] || m.status) : ''}</span></div></div>`;
+  h += `<div class="kpis">
+    <div class="kpi"><span class="mut">إجمالي اشتراكات${my}</span><b>${fmt(subs)}</b></div>
     <div class="kpi key"><span class="mut">الحد الائتماني (${LOAN_MULT} أضعاف المدفوع، حده الأعلى ${fmt(LOAN_CAP)})</span><b>${fmt(limit)}</b></div>
-    <div class="kpi"><span class="mut">رصيد قرضي الحالي</span><b>${fmt(bal)}</b></div>
-    <div class="kpi"><span class="mut">المتاح لي</span><b>${fmt(myAvail)}</b></div></div>`;
+    <div class="kpi"><span class="mut">رصيد القرض الحالي</span><b>${fmt(bal)}</b></div>
+    <div class="kpi"><span class="mut">المتاح ${self ? 'لي' : 'له'}</span><b>${fmt(avail)}</b></div></div>`;
   const myFee = (tx||[]).filter(t => t.kind==='fee' && !t.loan_id).reduce((s,t) => s + +t.amount, 0);
-  h += `<div class="rules">رسوم العضوية: مدفوع <b>${fmt(myFee)}</b> من ${fmt(MEMBER_FEE)} ريال ${myFee >= MEMBER_FEE ? '<span class="chip">مكتملة</span>' : `<span class="chip bad">متبقي ${fmt(MEMBER_FEE - myFee)}</span>`}</div>`;
-  h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
+  const myDue = feeDueOf(m);
+  if(myDue > 0 || myFee > 0) h += `<div class="rules">رسوم القروض (1 بالألف من كل قرض): المستحق <b>${fmt(myDue)}</b> · المدفوع <b>${fmt(myFee)}</b> ${myFee >= myDue ? '<span class="chip">مسددة</span>' : `<span class="chip bad">استحقاق رسوم ${fmt(myDue - myFee)}</span>`}</div>`;
+  if(self) h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
+  else if(open) h += `<div class="card highlight">عنده طلب قرض قيد الإجراء: <a href="#loan-${open.id}">${fmt(open.amount)} ريال — ${ST[open.status]}</a></div>`;
+  if((hist||[]).length){ const tot = hist.reduce((s,x) => s + +x.amount, 0);
+    h += `<div class="card"><h2>سجل القروض ورسومها</h2><p class="mut">الرسوم = 1 بالألف من كل قرض.</p><table class="stack"><thead><tr><th>الشهر</th><th class="n">مبلغ القرض</th><th class="n">الرسوم</th></tr></thead><tbody>${hist.map(x => `<tr><td>${monthTxt(x.loan_date)}</td><td class="n">${fmt(x.amount)}</td><td class="n">${fmt(Math.round(x.amount) / 1000)}</td></tr>`).join('')}<tr><td><b>المجموع (${hist.length})</b></td><td class="n"><b>${fmt(tot)}</b></td><td class="n"><b>${fmt(Math.round(tot / 10) / 100)}</b></td></tr></tbody></table></div>`; }
   const past = (loans||[]).filter(l => !OPEN.includes(l.status));
-  if(past.length) h += `<div class="card"><h2>قروضي</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
-  h += `<div class="card"><h2>كشف حسابي</h2>${(tx||[]).length ? `<table class="stack"><thead><tr><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${tx.map(t => `<tr><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا توجد حركات بعد.</p>'}</div>`;
-  h += await docsHtml(me.id);
+  if(past.length) h += `<div class="card"><h2>القروض في المنصة</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
+  h += `<div class="card"><h2>كشف الحساب</h2>${(tx||[]).length ? `<table class="stack"><thead><tr><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${tx.map(t => `<tr><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا توجد حركات بعد.</p>'}</div>`;
+  h += `<div class="card"><h2>${self ? 'بياناتي' : 'بيانات العضو'}</h2><table><tbody>
+    <tr><td>رقم العضوية</td><td>${m.member_no ?? '—'}</td></tr><tr><td>رقم الهوية</td><td>${esc(m.national_id || '—')}</td></tr>
+    <tr><td>الجوال</td><td dir="ltr" style="text-align:start">${esc(m.phone || '—')}</td></tr><tr><td>البريد</td><td>${esc(m.email || '—')}</td></tr>
+    <tr><td>الآيبان</td><td dir="ltr" style="text-align:start">${esc(m.iban || '—')}</td></tr><tr><td>بنكي</td><td>${esc(m.own_bank || '—')}</td></tr>
+    <tr><td>يودع في حساب الصندوق</td><td>${m.bank ? BANKS[m.bank] : '—'}</td></tr></tbody></table>
+    ${self ? '<p class="mut">إذا فيه معلومة غلط أو ناقصة، راسل الإدارة.</p>' : `<button type="button" id="mEdit">تعديل البيانات</button>`}</div>`;
+  h += await docsHtml(m.id);
   $('view').innerHTML = h;
-  bindMe(open); bindDocs($('view'));
+  if(self) bindMe(open); bindDocs($('view'));
+  if($('mEdit')) $('mEdit').onclick = () => editMember(m, () => render());
 }
 const RULES = `<div class="rules"><b>آلية ترتيب الصرف</b> — تُصرف القروض حسب الأولوية التالية، ولا تتغير لأي اعتبار:
 <ol><li>من لم يسبق له الاقتراض من الصندوق.</li><li>الأقل عدداً في القروض المصروفة له سابقاً.</li><li>من ليس عليه قرض قائم.</li><li>الأكثر انتظاماً في سداد قروضه السابقة.</li><li>الأسبق في تقديم الطلب.</li></ol>
@@ -361,7 +384,7 @@ async function viewLoanRoute(){
   const [ua, us, ur] = await Promise.all([signed(l.agreement_path), signed(l.standing_order_path), signed(l.receipt_path)]);
   const doc = (u, t) => u ? `<a class="btn" href="${u}" target="_blank" rel="noopener">${t}</a>` : `<span class="btn" style="opacity:.45">${t}</span>`;
   $('view').innerHTML = `<p><a href="#${me.is_admin && m?.id !== me.id ? 'requests' : 'me'}">← رجوع</a></p>
-  <div class="card"><div class="row sp"><h2>قرض ${esc(m?.full_name || '')}</h2><span class="chip">${ST[l.status]}</span></div>
+  <div class="card"><div class="row sp"><h2>قرض ${mLink(m?.id, m?.full_name || '')}</h2><span class="chip">${ST[l.status]}</span></div>
   <div class="kpis" style="margin:10px 0"><div class="kpi"><span class="mut">إجمالي القرض</span><b>${fmt(l.total || l.amount)}</b></div><div class="kpi"><span class="mut">المسدد</span><b>${fmt(paid)}</b></div><div class="kpi key"><span class="mut">المتبقي</span><b>${fmt((l.total||0) - paid)}</b></div></div>
   ${l.prev_balance > 0 ? `<p class="mut">يشمل المتبقي من القرض السابق ${fmt(l.prev_balance)} + قرض إضافي ${fmt(l.amount)}</p>` : ''}
   <div class="rules">رسوم القرض: ${l.fee_enabled ? `<b>${fmt(l.fee)} ريال</b> (1 بالألف من ${fmt(l.amount)})` : '<b>غير مستحقة</b>'}
@@ -422,15 +445,15 @@ async function viewRequests(){
   if(qe) throw qe;
   const waitingMe = (inprog||[]).filter(l => l.status==='docs_uploaded' || (l.status==='verified' && l.verified_by !== me.id) || l.status==='ready');
   let h = waitingMe.length ? `<div class="card highlight"><b>بانتظار إجراء منك: ${waitingMe.length}</b></div>` : '';
-  h += `<div class="card"><h2>طابور الصرف</h2>${(q||[]).length ? `<table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المبلغ</th><th>قروض سابقة</th><th>قرض قائم</th><th>أقساط متأخرة</th><th>تاريخ الطلب</th><th></th></tr></thead><tbody>${q.map(r => `<tr><td><b>${r.pos}</b></td><td>${esc(r.full_name)}</td><td class="n">${fmt(r.amount)}</td><td>${r.prior_loans}</td><td>${r.has_active ? 'نعم (' + fmt(r.active_balance) + ')' : 'لا'}</td><td>${r.late_installments}</td><td>${ymd(r.created_at)}</td><td class="row">${r.pos===1 ? `<button class="pri" data-approve="${r.loan_id}" data-bal="${r.active_balance}" data-amt="${r.amount}">اعتماد وجدولة</button>` : ''}<button class="warn" data-reject="${r.loan_id}">رفض</button></td></tr>`).join('')}</tbody></table><p class="mut">الاعتماد متاح لصاحب الدور الأول فقط.</p>` : '<p class="mut">لا توجد طلبات في الطابور.</p>'}</div>`;
+  h += `<div class="card"><h2>طابور الصرف</h2>${(q||[]).length ? `<table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المبلغ</th><th>قروض سابقة</th><th>قرض قائم</th><th>أقساط متأخرة</th><th>تاريخ الطلب</th><th></th></tr></thead><tbody>${q.map(r => `<tr><td><b>${r.pos}</b></td><td>${(r.member_id ? mLink(r.member_id, r.full_name) : esc(r.full_name))}</td><td class="n">${fmt(r.amount)}</td><td>${r.prior_loans}</td><td>${r.has_active ? 'نعم (' + fmt(r.active_balance) + ')' : 'لا'}</td><td>${r.late_installments}</td><td>${ymd(r.created_at)}</td><td class="row">${r.pos===1 ? `<button class="pri" data-approve="${r.loan_id}" data-bal="${r.active_balance}" data-amt="${r.amount}">اعتماد وجدولة</button>` : ''}<button class="warn" data-reject="${r.loan_id}">رفض</button></td></tr>`).join('')}</tbody></table><p class="mut">الاعتماد متاح لصاحب الدور الأول فقط.</p>` : '<p class="mut">لا توجد طلبات في الطابور.</p>'}</div>`;
   h += `<div class="card"><h2>قيد الإجراء</h2>${(inprog||[]).length ? (inprog).map(l => {
     let act = '';
     if(l.status==='docs_uploaded') act = `<button class="pri" data-verify="${l.id}">الوثائق مستوفية</button>`;
     if(l.status==='verified') act = l.verified_by === me.id ? '<span class="chip wait">بانتظار الأدمن الثاني</span>' : `<button class="pri" data-release="${l.id}">اعتماد الصرف</button>`;
     if(l.status==='ready') act = `<button class="pri" data-disburse="${l.id}" data-mid="${l.member_id}" data-amt="${l.amount}" data-fee="${l.fee_enabled ? l.fee : 0}">تم الصرف — رفع الإشعار</button>`;
     if(l.status==='approved') act = '<span class="chip wait">بانتظار وثائق العضو</span>';
-    return `<div class="row sp" style="border-bottom:1px solid var(--line);padding:10px 0"><div><b>${esc(l.members?.full_name)}</b> · ${fmt(l.total)} ريال <span class="chip">${ST[l.status]}</span></div><div class="row"><a class="btn" href="#loan-${l.id}">الملف</a>${act}<button class="warn" data-reject="${l.id}">رفض</button></div></div>`; }).join('') : '<p class="mut">لا يوجد.</p>'}</div>`;
-  h += `<div class="card"><h2>آخر المصروف</h2>${(done||[]).length ? `<table class="stack"><thead><tr><th>العضو</th><th class="n">المبلغ</th><th>تاريخ الصرف</th><th></th></tr></thead><tbody>${done.map(l => `<tr><td>${esc(l.members?.full_name)}</td><td class="n">${fmt(l.total)}</td><td>${ymd(l.disbursed_at)}</td><td><a href="#loan-${l.id}">الملف</a></td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد.</p>'}</div>`;
+    return `<div class="row sp" style="border-bottom:1px solid var(--line);padding:10px 0"><div><b>${mLink(l.member_id, l.members?.full_name)}</b> · ${fmt(l.total)} ريال <span class="chip">${ST[l.status]}</span></div><div class="row"><a class="btn" href="#loan-${l.id}">الملف</a>${act}<button class="warn" data-reject="${l.id}">رفض</button></div></div>`; }).join('') : '<p class="mut">لا يوجد.</p>'}</div>`;
+  h += `<div class="card"><h2>آخر المصروف</h2>${(done||[]).length ? `<table class="stack"><thead><tr><th>العضو</th><th class="n">المبلغ</th><th>تاريخ الصرف</th><th></th></tr></thead><tbody>${done.map(l => `<tr><td>${mLink(l.member_id, l.members?.full_name)}</td><td class="n">${fmt(l.total)}</td><td>${ymd(l.disbursed_at)}</td><td><a href="#loan-${l.id}">الملف</a></td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد.</p>'}</div>`;
   $('view').innerHTML = h;
   const nd = new Date(new Date().getFullYear(), new Date().getMonth()+1, 1); const next = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
   $('view').querySelectorAll('[data-approve]').forEach(b => b.onclick = () => dialog('اعتماد وجدولة',
@@ -452,6 +475,16 @@ async function viewRequests(){
     async d => { const p = await upload(d.get('f'), `${b.dataset.mid}/${b.dataset.disburse}/receipt`); const {error} = await sb.rpc('admin_disburse', {p_loan: +b.dataset.disburse, p_receipt: p}); if(error) throw error; toast('تم تسجيل الصرف'); render(); }));
 }
 
+function editMember(m, done){
+      dialog('بيانات ' + esc(m.full_name), `<div class="g2"><label>الجوال<input name="phone" inputmode="tel" value="${esc(m.phone || '')}"></label><label>البريد<input name="email" type="email" value="${esc(m.email || '')}"></label>
+        <label>الآيبان<input name="iban" dir="ltr" placeholder="SA.." value="${esc(m.iban || '')}"></label><label>بنك العضو<input name="own_bank" value="${esc(m.own_bank || '')}"></label>
+        <label>المدينة<input name="city" value="${esc(m.city || '')}"></label></div><p class="mut">رقم الهوية ما يتعدل من هنا لأن الدخول مربوط فيه.</p>`,
+        async d => { const iban = (d.get('iban') || '').replace(/\s/g, '').toUpperCase() || null;
+          if(iban && !ibanOk(iban)) throw new Error('الآيبان غير صحيح — لازم SA و22 رقم');
+          const upd = {phone: d.get('phone').trim() || null, email: d.get('email').trim() || null, iban, own_bank: d.get('own_bank').trim() || null, city: d.get('city').trim() || null};
+          const {error} = await sb.from('members').update(upd).eq('id', m.id); if(error) throw error; Object.assign(m, upd); toast('تم الحفظ'); done(); }, 'حفظ');
+}
+
 // ---------- الأدمن: الأعضاء ----------
 async function viewMembers(){
   const {data: all, error} = await sb.from('members').select('*').order('member_no', {nullsFirst:false});
@@ -466,13 +499,14 @@ async function viewMembers(){
     <button class="pri">إضافة</button></form>
     <p class="mut">لتفعيل دخوله: من Supabase ← Authentication ← Add user، البريد <b dir="ltr">رقم_الهوية@tawad.app</b> والرمز السري 6 أرقام، مع تفعيل Auto Confirm.</p></div>
   <div class="card"><h2>الأعضاء (<span id="mCount"></span>)</h2><div id="bf"></div>
-  <table class="stack"><thead><tr><th>#</th><th>الاسم</th><th>البنك</th><th>الهوية</th><th>الجوال</th><th>الحالة</th><th>الدخول</th></tr></thead><tbody id="mBody"></tbody></table></div>`;
+  <table class="stack"><thead><tr><th>#</th><th>الاسم</th><th>البنك</th><th>الهوية</th><th>الجوال</th><th>الآيبان</th><th>الحالة</th><th>الدخول</th></tr></thead><tbody id="mBody"></tbody></table></div>`;
   function draw(){
     const list = all.filter(m => bankMatch(m, f)).sort(bankSort); let last;
     $('bf').innerHTML = bankChips(all, f, owners); $('mCount').textContent = list.length;
-    $('mBody').innerHTML = list.map(m => { const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="7">${bankTitle(m.bank, owners)}</th></tr>`) : '';
-      return g + `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''} <a href="#" data-docs="${m.id}" class="mut">المستندات</a></td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
-      || '<tr><td colspan="7" class="mut">لا يوجد أعضاء في هذا الحساب.</td></tr>';
+    $('mBody').innerHTML = list.map(m => { const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="8">${bankTitle(m.bank, owners)}</th></tr>`) : '';
+      return g + `<tr><td>${m.member_no ?? ''}</td><td>${mLink(m.id, m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''} <a href="#member-${m.id}" class="mut">الملف</a> · <a href="#" data-edit="${m.id}" class="mut">تعديل</a></td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td dir="ltr" style="font-size:12px">${m.iban ? esc(m.iban) : '<span class="mut">—</span>'}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
+      || '<tr><td colspan="8" class="mut">لا يوجد أعضاء في هذا الحساب.</td></tr>';
+    $('mBody').querySelectorAll('[data-edit]').forEach(a => a.onclick = e => { e.preventDefault(); editMember(all.find(x => x.id === +a.dataset.edit), draw); });
     $('mBody').querySelectorAll('[data-docs]').forEach(a => a.onclick = e => { e.preventDefault(); run(null, async () => {
       const m = all.find(x => x.id === +a.dataset.docs), html = await docsHtml(m.id);
       $('dlgHost').innerHTML = `<div class="dlg"><div class="card" style="max-width:640px"><div class="row sp"><h2 style="margin:0">${esc(m.full_name)}</h2><button type="button" id="dlgNo">إغلاق</button></div>${html ? html.replace('<div class="card"><h2>المستندات</h2>', '<div>') : '<p class="mut">لا توجد مستندات لهذا العضو.</p>'}</div></div>`;
@@ -524,7 +558,7 @@ async function viewTx(){
     <label>النوع<select name="k">${Object.entries(KIND).filter(k => k[0] !== 'disbursement').map(([k,t]) => `<option value="${k}" ${k==='fee'?'selected':''}>${t}</option>`).join('')}</select></label>
     <label>المبلغ<input name="a" type="number" min="1" value="50" required></label></div>
     <p class="mut">قسط القرض يُربط تلقائياً بقرض العضو القائم.</p><button class="pri">حفظ</button></form></div>
-  <div class="card"><h2>آخر الحركات</h2><table class="stack"><thead><tr><th>العضو</th><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${(tx||[]).map(t => `<tr><td>${esc(t.members?.full_name)}</td><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table></div>`;
+  <div class="card"><h2>آخر الحركات</h2><table class="stack"><thead><tr><th>العضو</th><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${(tx||[]).map(t => `<tr><td>${mLink(t.member_id, t.members?.full_name)}</td><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table></div>`;
 
   function chips(){ $('bf').innerHTML = bankChips(ms, f, owners, has); }
   function totals(){
@@ -536,7 +570,7 @@ async function viewTx(){
     let last; chips();
     $('entT').tBodies[0].innerHTML = shown().map(m => { const l = loanOf(m.id), d = draft[m.id];
       const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="5">${bankTitle(m.bank, owners)}</th></tr>`) : '';
-      return g + `<tr><td>${m.member_no ?? ''} — ${esc(m.full_name)}</td><td>${prevTxt(m)}</td>
+      return g + `<tr><td>${m.member_no ?? ''} — ${mLink(m.id, m.full_name)}</td><td>${prevTxt(m)}</td>
         <td class="n"><input data-m="${m.id}" data-k="s" inputmode="numeric" enterkeyhint="next" value="${d.s}" placeholder="0" aria-label="اشتراك ${esc(m.full_name)}"></td>
         <td class="n">${l ? fmt(l.installment) : '—'}</td>
         <td class="n">${l ? `<input data-m="${m.id}" data-k="i" inputmode="numeric" enterkeyhint="next" value="${d.i}" placeholder="0" aria-label="قسط ${esc(m.full_name)}">` : '—'}</td></tr>`; }).join('')
@@ -577,7 +611,7 @@ const ym = d => String(d).slice(0, 7);
 const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while(y < y2 || (y === y2 && m <= m2)){ out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m > 12){ m = 1; y++; } } return out; };
 async function reportData(M){
   const [{data: ms, error}, {data: tx, error: e2}, {data: loans}, {data: fm}, {data: led}] = await Promise.all([
-    sb.from('members').select('id, member_no, full_name, bank, status, is_admin, admin_banks'),
+    sb.from('members').select('id, member_no, full_name, bank, status, is_admin, admin_banks, fee_due'),
     sb.from('transactions').select('member_id, period, kind, amount, loan_id, note'),
     sb.from('loans').select('id, member_id, amount, total, installment, first_due, status, fee, fee_enabled, disbursed_at, note'),
     sb.from('fund_months').select('*').order('period'),
@@ -620,11 +654,11 @@ async function reportData(M){
   const active = ms.filter(m => (!m.status || m.status === 'active') && m.bank);
   const subPaid = new Set(tx.filter(x => x.kind === 'subscription' && ym(x.period) === M && !isOpen(x)).map(x => x.member_id));
   const feeBy = {}; tx.filter(x => x.kind === 'fee' && !x.loan_id && upto(x)).forEach(x => feeBy[x.member_id] = (feeBy[x.member_id] || 0) + +x.amount);
-  const feeLate = active.filter(m => (feeBy[m.id] || 0) < MEMBER_FEE);
+  const feeLate = active.filter(m => (feeBy[m.id] || 0) < feeDueOf(m) - 0.001);
   const feesIn = sum(tx.filter(x => x.kind === 'fee' && upto(x)), x => x.amount);
   const ledAll = (led||[]).filter(upto), ledIn = sum(ledAll.filter(x => x.kind === 'income'), x => x.amount), ledOut = sum(ledAll.filter(x => x.kind === 'expense'), x => x.amount);
   return {...cur, owners: bankOwners(ms), activeCount: active.length, subPaidCount: active.filter(m => subPaid.has(m.id)).length,
-    outstanding, due, late, lateAmt, feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => MEMBER_FEE - (feeBy[m.id] || 0)),
+    outstanding, due, late, lateAmt, feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => feeDueOf(m) - (feeBy[m.id] || 0)),
     feesIn, ledIn, ledOut, feesBalance: feesIn + ledIn - ledOut};
 }
 function reportBody(r){
@@ -636,7 +670,7 @@ function reportBody(r){
   <h3>2. حركة أموال الصندوق</h3><table><tbody>
     ${row('الرصيد السابق', fmt(r.opening))}
     ${row('اشتراكات شهرية', fmt(r.sub))}${row('أقساط قروض', fmt(r.inst))}
-    ${row('رسوم (عضوية وقروض)', fmt(r.mfee + r.lfee))}
+    ${row('رسوم القروض', fmt(r.mfee + r.lfee))}
     ${r.lin ? row('إيرادات أخرى في بند الرسوم', fmt(r.lin)) : ''}
     ${row(`قروض صُرفت هذا الشهر${r.newLoans != null ? ` (${r.newLoans})` : ''}`, '− ' + fmt(r.out))}
     ${r.lout ? row('مصروفات الجمعية', '− ' + fmt(r.lout)) : ''}
@@ -648,10 +682,10 @@ function reportBody(r){
     ${row('أقساط مستحقة هذا الشهر', r.due)}
     ${row('أقساط متعثرة هذا الشهر', r.late + pct(r.late, r.due) + (r.lateAmt ? ` — ${fmt(r.lateAmt)} ريال` : ''))}</tbody></table>
   <h3>4. بند الرسوم (منفصل عن رأس مال الصندوق)</h3><table><tbody>
-    ${row('رسوم عضوية محصلة هذا الشهر', fmt(r.mfee))}${row('رسوم قروض محصلة هذا الشهر', fmt(r.lfee))}
+    ${row('رسوم (بأثر رجعي) محصلة هذا الشهر', fmt(r.mfee))}${row('رسوم قروض محصلة هذا الشهر', fmt(r.lfee))}
     ${row('إجمالي الرسوم المحصلة', fmt(r.feesIn))}${row('إيرادات أخرى', fmt(r.ledIn))}${row('إجمالي المصروفات', '− ' + fmt(r.ledOut))}
     ${row('رصيد بند الرسوم', fmt(r.feesBalance), true)}
-    ${row(`أعضاء عليهم رسوم عضوية (من ${fmt(MEMBER_FEE)})`, `${r.feeLateCount} — ${fmt(r.feeLateAmt)} ريال`)}</tbody></table>`;
+    ${row('أعضاء عليهم استحقاق رسوم', `${r.feeLateCount} — ${fmt(r.feeLateAmt)} ريال`)}</tbody></table>`;
 }
 async function viewReport(){
   const now = new Date(); repMonth = repMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -676,30 +710,32 @@ async function viewFees(){
   const [{data: led, error}, {data: tx}, {data: ms}] = await Promise.all([
     sb.from('fund_ledger').select('*').order('period', {ascending:false}),
     sb.from('transactions').select('member_id, period, amount, loan_id, note').eq('kind', 'fee'),
-    sb.from('members').select('id, member_no, full_name, status, bank').order('member_no')
+    sb.from('members').select('id, member_no, full_name, status, bank, fee_due').order('member_no')
   ]);
   if(error) throw error;
   const mfee = (tx||[]).filter(t => !t.loan_id).reduce((s,t) => s + +t.amount, 0), lfee = (tx||[]).filter(t => t.loan_id).reduce((s,t) => s + +t.amount, 0);
-  const lin = (led||[]).filter(x => x.kind === 'income').reduce((s,x) => s + +x.amount, 0), lout = (led||[]).filter(x => x.kind === 'expense').reduce((s,x) => s + +x.amount, 0);
+  const lin = (led||[]).filter(x => x.kind === 'income').reduce((s,x) => s + +x.amount, 0), lout = (led||[]).filter(x => x.kind === 'expense').reduce((s,x) => s + +x.amount, 0), dep = (led||[]).filter(x => x.kind === 'deposit').reduce((s,x) => s + +x.amount, 0);
   const feeBy = {}; (tx||[]).filter(t => !t.loan_id).forEach(t => feeBy[t.member_id] = (feeBy[t.member_id] || 0) + +t.amount);
-  const late = (ms||[]).filter(m => (!m.status || m.status === 'active') && m.bank && (feeBy[m.id] || 0) < MEMBER_FEE);
+  const late = (ms||[]).filter(m => (!m.status || m.status === 'active') && m.bank && (feeBy[m.id] || 0) < feeDueOf(m) - 0.001);
   const now = new Date(), cm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   $('view').innerHTML = `<div class="kpis">
     <div class="kpi key"><span class="mut">رصيد بند الرسوم</span><b>${fmt(mfee + lfee + lin - lout)}</b></div>
-    <div class="kpi"><span class="mut">رسوم العضوية المحصلة</span><b>${fmt(mfee)}</b></div>
+    <div class="kpi"><span class="mut">الرسوم المحصلة بأثر رجعي</span><b>${fmt(mfee)}</b></div>
     <div class="kpi"><span class="mut">رسوم القروض المحصلة</span><b>${fmt(lfee)}</b></div>
     <div class="kpi"><span class="mut">المصروفات</span><b>${fmt(lout)}</b></div></div>
+  ${dep ? `<div class="card" style="border-color:#e6c44d"><div class="row sp"><div><b>وديعة النثريات</b> <span class="chip wait">للأدمن فقط — ما تظهر في التقرير</span><div class="mut">موجودة في حساب الصندوق الرسمي المجمد، مو في حساب بنك الرياض المستخدم</div></div><b style="font-size:22px">${fmt(dep)}</b></div>
+    <p style="margin:8px 0 0">إجمالي النثريات مع الوديعة: <b>${fmt(mfee + lfee + lin - lout + dep)}</b> ريال</p></div>` : ''}
   <div class="card"><h2>إضافة قيد</h2><form id="ledF"><div class="g2">
-    <label>النوع<select name="k"><option value="expense">مصروف</option><option value="income">إيراد</option></select></label>
+    <label>النوع<select name="k"><option value="expense">مصروف</option><option value="income">إيراد</option><option value="deposit">وديعة</option></select></label>
     <label>الشهر<input name="p" type="month" value="${cm}" required></label>
     <label>البيان<input name="d" required></label><label>المبلغ<input name="a" type="number" min="1" step="0.01" required></label></div>
     <button class="pri">حفظ</button></form></div>
   <div class="card"><h2>قيود بند الرسوم</h2><table class="stack"><thead><tr><th>الشهر</th><th>البيان</th><th class="n">إيراد</th><th class="n">مصروف</th></tr></thead><tbody>
-    ${(led||[]).map(x => `<tr><td>${monthTxt(x.period)}</td><td>${esc(x.description)}</td><td class="n">${x.kind === 'income' ? fmt(x.amount) : ''}</td><td class="n">${x.kind === 'expense' ? fmt(x.amount) : ''}</td></tr>`).join('')}</tbody></table>
-    <p class="mut">رسوم العضوية ورسوم القروض تنحسب تلقائياً من الحركات، وما تحتاج تسجلها هنا.</p></div>
-  <div class="card"><h2>عليهم رسوم عضوية (${late.length})</h2><p class="mut">رسوم العضوية ${fmt(MEMBER_FEE)} ريال على كل عضو. سجّل المدفوع من تبويب الحركات بنوع "رسوم".</p>
-    <table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المدفوع</th><th class="n">المتبقي</th></tr></thead><tbody>
-    ${late.map(m => `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}</td><td class="n">${fmt(feeBy[m.id] || 0)}</td><td class="n">${fmt(MEMBER_FEE - (feeBy[m.id] || 0))}</td></tr>`).join('')}</tbody></table></div>`;
+    ${(led||[]).map(x => `<tr><td>${monthTxt(x.period)}</td><td>${esc(x.description)}</td><td class="n">${x.kind === 'income' ? fmt(x.amount) : ''}</td><td class="n">${x.kind === 'expense' ? fmt(x.amount) : x.kind === 'deposit' ? `<span class="chip wait">وديعة ${fmt(x.amount)}</span>` : ''}</td></tr>`).join('')}</tbody></table>
+    <p class="mut">الرسوم (بأثر رجعي ورسوم القروض الجديدة) تنحسب تلقائياً من الحركات، وما تحتاج تسجلها هنا.</p></div>
+  <div class="card"><h2>عليهم استحقاق رسوم (${late.length})</h2><p class="mut">الرسوم = 1 بالألف من كل قرض أخذه العضو، بأثر رجعي. سجّل المدفوع من تبويب الحركات بنوع "رسوم".</p>
+    <table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المستحق</th><th class="n">المدفوع</th><th class="n">المتبقي</th></tr></thead><tbody>
+    ${late.map(m => `<tr><td>${m.member_no ?? ''}</td><td>${mLink(m.id, m.full_name)}</td><td class="n">${fmt(feeDueOf(m))}</td><td class="n">${fmt(feeBy[m.id] || 0)}</td><td class="n">${fmt(feeDueOf(m) - (feeBy[m.id] || 0))}</td></tr>`).join('')}</tbody></table></div>`;
   $('ledF').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
     const {error} = await sb.from('fund_ledger').insert({period: d.get('p') + '-01', kind: d.get('k'), description: d.get('d').trim(), amount: +d.get('a'), created_by: me.id});
     if(error) throw error; toast('تم الحفظ'); render(); }); };
