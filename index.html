@@ -128,7 +128,37 @@ const BANK_ORDER = Object.keys(BANKS);
 const SUB = 250;
 const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
 const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
+const FEE_RATE = 0.001;    // رسوم القرض الاختيارية: 1 بالألف من مبلغ القرض
+const feeOf = a => Math.round((+a || 0) * FEE_RATE * 100) / 100;
 let myAvail = 0;
+// ---------- المستندات: الاتفاقيات والحوالات المجدولة وإشعارات الحوالة (حالي / سابق) ----------
+const DOC_KIND = {agreement:'اتفاقية القرض', standing_order:'الحوالة المجدولة', receipt:'إشعار حوالة القرض', payment:'إيصالات إيداع وسداد', settlement:'تصفية الانسحاب'};
+async function docsHtml(memberId){
+  const [{data: docs, error}, {data: loans}] = await Promise.all([
+    sb.from('member_docs').select('*').eq('member_id', memberId).order('doc_date', {ascending:false}),
+    sb.from('loans').select('id, status, agreement_path, standing_order_path, receipt_path, disbursed_at, created_at').eq('member_id', memberId)
+  ]);
+  if(error) return '';
+  const list = (docs||[]).map(d => ({kind:d.kind, title:d.title, date:d.doc_date, path:d.path, current:d.is_current}));
+  // مستندات القروض اللي انصرفت من المنصة نفسها
+  for(const l of (loans||[])){
+    const cur = l.status === 'disbursed', when = l.disbursed_at || l.created_at;
+    for(const [k, f] of [['agreement','agreement_path'],['standing_order','standing_order_path'],['receipt','receipt_path']]){
+      if(!l[f]) continue;
+      if(cur) list.forEach(x => { if(x.kind === k) x.current = false; });
+      list.push({kind:k, title:DOC_KIND[k] + ' — من المنصة', date:when, path:l[f], current:cur});
+    }
+  }
+  if(!list.length) return '';
+  const groups = Object.keys(DOC_KIND).map(k => [k, list.filter(x => x.kind === k).sort((a,b) => (b.current - a.current) || String(b.date).localeCompare(String(a.date)))]).filter(g => g[1].length);
+  return `<div class="card"><h2>المستندات</h2>${groups.map(([k, xs]) => `<h3>${DOC_KIND[k]}</h3><table class="stack"><tbody>${xs.map(x => `<tr${x.current ? ' style="background:var(--g2)"' : ''}><td>${x.current ? '<span class="chip">الحالي</span>' : '<span class="chip wait">سابق</span>'}</td><td>${esc(x.title || DOC_KIND[k])}</td><td class="n">${monthTxt(x.date)}</td><td class="n"><button type="button" data-doc="${esc(x.path)}" style="min-height:36px">عرض</button></td></tr>`).join('')}</tbody></table>`).join('')}</div>`;
+}
+function bindDocs(root){
+  root.querySelectorAll('[data-doc]').forEach(b => b.onclick = () => run(b, async () => {
+    const w = window.open('', '_blank'); const u = await signed(b.dataset.doc);
+    if(!u){ if(w) w.close(); throw new Error('الملف غير موجود'); }
+    if(w) w.location = u; else location.href = u; }));
+}
 const digits = v => String(v || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[^\d]/g, '');
 function myBanks(){ return me?.admin_banks || []; }
 function bankOwners(ms){ const o = {}; ms.filter(m => m.is_admin && m.admin_banks).forEach(m => m.admin_banks.forEach(b => o[b] = (o[b] ? o[b] + ' و' : '') + String(m.full_name).split(' ')[0])); return o; }
@@ -264,8 +294,9 @@ async function viewMe(){
   const past = (loans||[]).filter(l => !OPEN.includes(l.status));
   if(past.length) h += `<div class="card"><h2>قروضي</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
   h += `<div class="card"><h2>كشف حسابي</h2>${(tx||[]).length ? `<table class="stack"><thead><tr><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${tx.map(t => `<tr><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا توجد حركات بعد.</p>'}</div>`;
+  h += await docsHtml(me.id);
   $('view').innerHTML = h;
-  bindMe(open);
+  bindMe(open); bindDocs($('view'));
 }
 const RULES = `<div class="rules"><b>آلية ترتيب الصرف</b> — تُصرف القروض حسب الأولوية التالية، ولا تتغير لأي اعتبار:
 <ol><li>من لم يسبق له الاقتراض من الصندوق.</li><li>الأقل عدداً في القروض المصروفة له سابقاً.</li><li>من ليس عليه قرض قائم.</li><li>الأكثر انتظاماً في سداد قروضه السابقة.</li><li>الأسبق في تقديم الطلب.</li></ol>
@@ -328,9 +359,12 @@ async function viewLoanRoute(){
   <div class="card"><div class="row sp"><h2>قرض ${esc(m?.full_name || '')}</h2><span class="chip">${ST[l.status]}</span></div>
   <div class="kpis" style="margin:10px 0"><div class="kpi"><span class="mut">إجمالي القرض</span><b>${fmt(l.total || l.amount)}</b></div><div class="kpi"><span class="mut">المسدد</span><b>${fmt(paid)}</b></div><div class="kpi key"><span class="mut">المتبقي</span><b>${fmt((l.total||0) - paid)}</b></div></div>
   ${l.prev_balance > 0 ? `<p class="mut">يشمل المتبقي من القرض السابق ${fmt(l.prev_balance)} + قرض إضافي ${fmt(l.amount)}</p>` : ''}
+  <div class="rules">رسوم القرض: ${l.fee_enabled ? `<b>${fmt(l.fee)} ريال</b> (1 بالألف من ${fmt(l.amount)})` : '<b>غير مستحقة</b>'}
+  ${me.is_admin && !['disbursed','closed','rejected'].includes(l.status) ? `<label style="display:flex;gap:10px;align-items:center;margin:8px 0 0;color:var(--ink)"><input type="checkbox" id="feeChk" ${l.fee_enabled ? 'checked' : ''} style="width:22px;min-height:22px;margin:0"> تفعيل الرسوم (${fmt(feeOf(l.amount))} ريال)</label>` : ''}</div>
   <h3>الوثائق</h3><div class="row">${doc(ua,'الاتفاقية الموقّعة')}${doc(us,'الحوالة المجدولة')}${doc(ur,'إشعار حوالة الصرف')}${l.installment ? '<button id="agreeBtn">نسخة الاتفاقية</button>' : ''}</div>
   <h3>سجل الموافقات</h3>${log.length ? `<table><tbody>${log.map(x => `<tr><td>${x[0]}</td><td>${name(x[1])}</td><td class="n">${new Date(x[2]).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'})}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد بعد.</p>'}
   <h3>جدول الأقساط</h3>${rows.length ? `<table class="stack"><thead><tr><th>#</th><th>الشهر</th><th class="n">القسط</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.k}</td><td>${r.m} ${r.y}</td><td class="n">${fmt(r.v)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">يُحدد بعد الاعتماد.</p>'}</div>`;
+  if($('feeChk')) $('feeChk').onchange = e => run(null, async () => { const {error} = await sb.rpc('admin_set_fee', {p_loan: l.id, p_enabled: e.target.checked}); if(error){ e.target.checked = !e.target.checked; throw error; } toast(e.target.checked ? 'تم تفعيل الرسوم' : 'تم إلغاء الرسوم'); render(); });
   if($('agreeBtn')) $('agreeBtn').onclick = () => showAgreement(l, m);
 }
 
@@ -358,7 +392,8 @@ async function showAgreement(l, m){
     <h4>تفاصيل القرض:</h4><ul>
       ${l.prev_balance > 0 ? `<li>المتبقي من القرض السابق: ${fmt(l.prev_balance)}</li><li>مبلغ القرض الإضافي: ${fmt(l.amount)}</li>` : ''}
       <li><b>إجمالي مبلغ القرض${l.prev_balance > 0 ? ' الجديد' : ''}: ${fmt(l.total)}</b> ريال (${words(l.total)} ريال سعودي فقط لا غير)</li>
-      <li>عدد الأقساط: ${rows.length} · القسط الشهري: ${fmt(l.installment)}${last && last.v !== +l.installment ? ' · القسط الأخير: ' + fmt(last.v) : ''}</li></ul>
+      <li>عدد الأقساط: ${rows.length} · القسط الشهري: ${fmt(l.installment)}${last && last.v !== +l.installment ? ' · القسط الأخير: ' + fmt(last.v) : ''}</li>
+      ${l.fee_enabled && +l.fee > 0 ? `<li>رسوم القرض (1 بالألف): ${fmt(l.fee)} ريال تُدفع للصندوق</li>` : ''}</ul>
     <h4>جدول السداد:</h4>
     <div class="halves">${tbl(rows.slice(0,half))}${rows.length > half ? tbl(rows.slice(half)) : '<div></div>'}</div>
     <div class="signs"><div>الطرف الأول: <i>${esc(m.full_name)}</i><div class="dots"></div><div class="s"></div></div>
@@ -397,8 +432,11 @@ async function viewRequests(){
     `<p class="mut">طلب ${fmt(b.dataset.amt)} ريال. عدّل المتبقي من القرض السابق إذا لزم.</p>
      <label>المتبقي من القرض السابق<input name="prev" type="number" min="0" value="${+b.dataset.bal || 0}"></label>
      <label>القسط الشهري<input name="inst" type="number" min="1" value="2500" required></label>
-     <label>شهر أول قسط<input name="first" type="month" value="${next}" required></label>`,
-    async d => { const {error} = await sb.rpc('admin_approve', {p_loan: +b.dataset.approve, p_installment: +d.get('inst'), p_first_due: d.get('first') + '-01', p_prev_balance: +d.get('prev') || 0}); if(error) throw error; toast('تم الاعتماد'); render(); }));
+     <label>شهر أول قسط<input name="first" type="month" value="${next}" required></label>
+     <label style="display:flex;gap:10px;align-items:center;color:var(--ink)"><input type="checkbox" name="fee" value="1" style="width:22px;min-height:22px;margin:0"> تفعيل الرسوم — ${fmt(feeOf(b.dataset.amt))} ريال (1 بالألف من ${fmt(b.dataset.amt)})</label>`,
+    async d => { const {error} = await sb.rpc('admin_approve', {p_loan: +b.dataset.approve, p_installment: +d.get('inst'), p_first_due: d.get('first') + '-01', p_prev_balance: +d.get('prev') || 0}); if(error) throw error;
+      const {error: e2} = await sb.rpc('admin_set_fee', {p_loan: +b.dataset.approve, p_enabled: d.get('fee') === '1'}); if(e2) throw e2;
+      toast(d.get('fee') === '1' ? 'تم الاعتماد مع رسوم ' + fmt(feeOf(b.dataset.amt)) + ' ريال' : 'تم الاعتماد بدون رسوم'); render(); }));
   $('view').querySelectorAll('[data-reject]').forEach(b => b.onclick = () => dialog('رفض الطلب', '<label>السبب<input name="r" required></label>',
     async d => { const {error} = await sb.rpc('admin_reject', {p_loan: +b.dataset.reject, p_reason: d.get('r')}); if(error) throw error; render(); }, 'رفض'));
   $('view').querySelectorAll('[data-verify]').forEach(b => b.onclick = () => dialog('مراجعة الوثائق', '<p>راجعت الاتفاقية الموقعة وصورة الحوالة المجدولة من ملف القرض، وهي مستوفية للشروط؟</p>',
@@ -428,8 +466,12 @@ async function viewMembers(){
     const list = all.filter(m => bankMatch(m, f)).sort(bankSort); let last;
     $('bf').innerHTML = bankChips(all, f, owners); $('mCount').textContent = list.length;
     $('mBody').innerHTML = list.map(m => { const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="7">${bankTitle(m.bank, owners)}</th></tr>`) : '';
-      return g + `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''}</td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
+      return g + `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}${m.is_admin ? ' <span class="chip">أدمن</span>' : ''} <a href="#" data-docs="${m.id}" class="mut">المستندات</a></td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
       || '<tr><td colspan="7" class="mut">لا يوجد أعضاء في هذا الحساب.</td></tr>';
+    $('mBody').querySelectorAll('[data-docs]').forEach(a => a.onclick = e => { e.preventDefault(); run(null, async () => {
+      const m = all.find(x => x.id === +a.dataset.docs), html = await docsHtml(m.id);
+      $('dlgHost').innerHTML = `<div class="dlg"><div class="card" style="max-width:640px"><div class="row sp"><h2 style="margin:0">${esc(m.full_name)}</h2><button type="button" id="dlgNo">إغلاق</button></div>${html ? html.replace('<div class="card"><h2>المستندات</h2>', '<div>') : '<p class="mut">لا توجد مستندات لهذا العضو.</p>'}</div></div>`;
+      $('dlgNo').onclick = () => $('dlgHost').innerHTML = ''; bindDocs($('dlgHost')); }); });
     $('mBody').querySelectorAll('[data-st]').forEach(s => s.onchange = () => run(null, async () => { const {error} = await sb.from('members').update({status: s.value}).eq('id', +s.dataset.st); if(error) throw error; all.find(m => m.id === +s.dataset.st).status = s.value; toast('تم التحديث'); }));
     $('mBody').querySelectorAll('[data-bank]').forEach(s => s.onchange = () => run(s, async () => { const v = s.value || null;
       const {error} = await sb.from('members').update({bank: v}).eq('id', +s.dataset.bank); if(error) throw error;
