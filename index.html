@@ -56,6 +56,7 @@ tr.grp th{background:var(--g2);color:var(--g);font-weight:700;font-size:14px;pad
 .ent td input{display:inline-block;min-height:40px;margin:0;max-width:120px;text-align:end}
 .ent tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 @media(max-width:600px){.ent td input{max-width:none}}
+.page.rep{font-size:13px}.page.rep table{width:100%;border-collapse:collapse;margin:2px 0 6px}.page.rep td{border:1px solid #999;padding:3px 8px;color:#000}.page.rep h3{font-size:15px;margin:8px 0 4px}.page.rep .mut{color:#444}
 /* الاتفاقية */
 #agree{position:fixed;inset:0;background:#555;overflow:auto;z-index:25;padding:12px}
 #agree .bar{max-width:794px;margin:0 auto 10px;display:flex;gap:8px}
@@ -129,6 +130,8 @@ const SUB = 250;
 const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
 const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
 const FEE_RATE = 0.001;    // رسوم القرض الاختيارية: 1 بالألف من مبلغ القرض
+const MEMBER_FEE = 350;    // رسوم العضوية على كل عضو
+const OPEN_NOTE = 'رصيد افتتاحي';
 const feeOf = a => Math.round((+a || 0) * FEE_RATE * 100) / 100;
 let myAvail = 0;
 // ---------- المستندات: الاتفاقيات والحوالات المجدولة وإشعارات الحوالة (حالي / سابق) ----------
@@ -264,12 +267,12 @@ window.addEventListener('hashchange', () => me && render());
 
 function render(){
   const tabs = [['me','حسابي']];
-  if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['settings','الإعدادات']);
+  if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['report','التقرير'],['fees','بند الرسوم'],['settings','الإعدادات']);
   route = (location.hash.slice(1) || 'me').split('-')[0];
   if(!tabs.some(t => t[0]===route) && route !== 'loan') route = 'me';
   $('tabs').innerHTML = tabs.map(([k,t]) => `<a href="#${k}" class="${route===k?'on':''}">${t}</a>`).join('');
   $('view').innerHTML = '<p class="mut">جارٍ التحميل…</p>';
-  ({me:viewMe, requests:viewRequests, members:viewMembers, tx:viewTx, settings:viewSettings, loan:viewLoanRoute}[route])().catch(e => $('view').innerHTML = `<p class="err">${esc(errMsg(e))}</p>`);
+  ({me:viewMe, requests:viewRequests, members:viewMembers, tx:viewTx, report:viewReport, fees:viewFees, settings:viewSettings, loan:viewLoanRoute}[route])().catch(e => $('view').innerHTML = `<p class="err">${esc(errMsg(e))}</p>`);
 }
 
 // ---------- العضو ----------
@@ -290,6 +293,8 @@ async function viewMe(){
     <div class="kpi key"><span class="mut">الحد الائتماني (${LOAN_MULT} أضعاف المدفوع، حده الأعلى ${fmt(LOAN_CAP)})</span><b>${fmt(limit)}</b></div>
     <div class="kpi"><span class="mut">رصيد قرضي الحالي</span><b>${fmt(bal)}</b></div>
     <div class="kpi"><span class="mut">المتاح لي</span><b>${fmt(myAvail)}</b></div></div>`;
+  const myFee = (tx||[]).filter(t => t.kind==='fee' && !t.loan_id).reduce((s,t) => s + +t.amount, 0);
+  h += `<div class="rules">رسوم العضوية: مدفوع <b>${fmt(myFee)}</b> من ${fmt(MEMBER_FEE)} ريال ${myFee >= MEMBER_FEE ? '<span class="chip">مكتملة</span>' : `<span class="chip bad">متبقي ${fmt(MEMBER_FEE - myFee)}</span>`}</div>`;
   h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
   const past = (loans||[]).filter(l => !OPEN.includes(l.status));
   if(past.length) h += `<div class="card"><h2>قروضي</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
@@ -422,7 +427,7 @@ async function viewRequests(){
     let act = '';
     if(l.status==='docs_uploaded') act = `<button class="pri" data-verify="${l.id}">الوثائق مستوفية</button>`;
     if(l.status==='verified') act = l.verified_by === me.id ? '<span class="chip wait">بانتظار الأدمن الثاني</span>' : `<button class="pri" data-release="${l.id}">اعتماد الصرف</button>`;
-    if(l.status==='ready') act = `<button class="pri" data-disburse="${l.id}" data-mid="${l.member_id}">تم الصرف — رفع الإشعار</button>`;
+    if(l.status==='ready') act = `<button class="pri" data-disburse="${l.id}" data-mid="${l.member_id}" data-amt="${l.amount}" data-fee="${l.fee_enabled ? l.fee : 0}">تم الصرف — رفع الإشعار</button>`;
     if(l.status==='approved') act = '<span class="chip wait">بانتظار وثائق العضو</span>';
     return `<div class="row sp" style="border-bottom:1px solid var(--line);padding:10px 0"><div><b>${esc(l.members?.full_name)}</b> · ${fmt(l.total)} ريال <span class="chip">${ST[l.status]}</span></div><div class="row"><a class="btn" href="#loan-${l.id}">الملف</a>${act}<button class="warn" data-reject="${l.id}">رفض</button></div></div>`; }).join('') : '<p class="mut">لا يوجد.</p>'}</div>`;
   h += `<div class="card"><h2>آخر المصروف</h2>${(done||[]).length ? `<table class="stack"><thead><tr><th>العضو</th><th class="n">المبلغ</th><th>تاريخ الصرف</th><th></th></tr></thead><tbody>${done.map(l => `<tr><td>${esc(l.members?.full_name)}</td><td class="n">${fmt(l.total)}</td><td>${ymd(l.disbursed_at)}</td><td><a href="#loan-${l.id}">الملف</a></td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد.</p>'}</div>`;
@@ -443,7 +448,7 @@ async function viewRequests(){
     async () => { const {error} = await sb.rpc('admin_verify', {p_loan: +b.dataset.verify}); if(error) throw error; toast('وصل إشعار للأدمن الثاني'); render(); }));
   $('view').querySelectorAll('[data-release]').forEach(b => b.onclick = () => dialog('الاعتماد الثاني', '<p>أعتمد هذا القرض للصرف؟</p>',
     async () => { const {error} = await sb.rpc('admin_release', {p_loan: +b.dataset.release}); if(error) throw error; toast('القرض جاهز للصرف'); render(); }));
-  $('view').querySelectorAll('[data-disburse]').forEach(b => b.onclick = () => dialog('تسجيل الصرف', '<p class="mut">بعد التحويل من الحساب الأساسي (بنك الرياض) ارفع صورة إشعار الحوالة.</p><label>إشعار الحوالة<input type="file" name="f" accept="image/*,application/pdf" required></label>',
+  $('view').querySelectorAll('[data-disburse]').forEach(b => b.onclick = () => dialog('تسجيل الصرف', (+b.dataset.fee > 0 ? `<div class="rules">المبلغ المحول للعضو: <b>${fmt(b.dataset.amt - b.dataset.fee)}</b> ريال<br><span class="mut">القرض ${fmt(b.dataset.amt)} − رسوم ${fmt(b.dataset.fee)} (تنسجل في بند الرسوم تلقائياً)</span></div>` : `<div class="rules">المبلغ المحول للعضو: <b>${fmt(b.dataset.amt)}</b> ريال (بدون رسوم)</div>`) + '<p class="mut">بعد التحويل من الحساب الأساسي (بنك الرياض) ارفع صورة إشعار الحوالة.</p><label>إشعار الحوالة<input type="file" name="f" accept="image/*,application/pdf" required></label>',
     async d => { const p = await upload(d.get('f'), `${b.dataset.mid}/${b.dataset.disburse}/receipt`); const {error} = await sb.rpc('admin_disburse', {p_loan: +b.dataset.disburse, p_receipt: p}); if(error) throw error; toast('تم تسجيل الصرف'); render(); }));
 }
 
@@ -563,6 +568,140 @@ async function viewTx(){
     const mid = +d.get('m'), kind = d.get('k'); const loan = loanOf(mid);
     if(kind==='installment' && !loan) throw new Error('هذا العضو ليس عليه قرض قائم');
     const {error} = await sb.from('transactions').insert({member_id: mid, period: d.get('p') + '-01', kind, amount: +d.get('a'), loan_id: kind==='installment' ? loan.id : null, created_by: me.id});
+    if(error) throw error; toast('تم الحفظ'); render(); }); };
+}
+
+// ---------- الأدمن: التقرير الشهري ----------
+let repMonth = null;
+const ym = d => String(d).slice(0, 7);
+const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while(y < y2 || (y === y2 && m <= m2)){ out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m > 12){ m = 1; y++; } } return out; };
+async function reportData(M){
+  const [{data: ms, error}, {data: tx, error: e2}, {data: loans}, {data: fm}, {data: led}] = await Promise.all([
+    sb.from('members').select('id, member_no, full_name, bank, status, is_admin, admin_banks'),
+    sb.from('transactions').select('member_id, period, kind, amount, loan_id, note'),
+    sb.from('loans').select('id, member_id, amount, total, installment, first_due, status, fee, fee_enabled, disbursed_at, note'),
+    sb.from('fund_months').select('*').order('period'),
+    sb.from('fund_ledger').select('*').order('period')
+  ]);
+  if(error) throw error; if(e2) throw e2;
+  if(!(fm||[]).length) throw new Error('شغّل ملف tawad-fees-report.sql أولاً');
+  const byId = {}; ms.forEach(m => byId[m.id] = m);
+  const isOpen = t => (t.note || '').startsWith(OPEN_NOTE);
+  const sum = (a, f) => a.reduce((s, x) => s + (+f(x) || 0), 0);
+  const fmRow = {}; fm.forEach(r => fmRow[ym(r.period)] = r);
+  const months = monthsBetween(ym(fm[0].period), M);
+  let bal = +fm[0].opening_balance || 0, cur = null;
+  for(const m of months){
+    const r = fmRow[m] || {};
+    if(r.opening_balance != null) bal = +r.opening_balance;
+    const t = tx.filter(x => ym(x.period) === m && !isOpen(x));
+    const sub = sum(t.filter(x => x.kind === 'subscription'), x => x.amount), inst = sum(t.filter(x => x.kind === 'installment'), x => x.amount);
+    const mfee = sum(t.filter(x => x.kind === 'fee' && !x.loan_id), x => x.amount), lfee = sum(t.filter(x => x.kind === 'fee' && x.loan_id), x => x.amount);
+    const newLoans = loans.filter(l => l.disbursed_at && ym(l.disbursed_at) === m && !(l.note || '').startsWith(OPEN_NOTE));
+    const out = (+r.extra_loans_out || 0) + sum(newLoans, l => l.amount);
+    const lg = (led||[]).filter(x => ym(x.period) === m), lin = sum(lg.filter(x => x.kind === 'income'), x => x.amount), lout = sum(lg.filter(x => x.kind === 'expense'), x => x.amount);
+    const opening = bal, closing = opening + sub + inst + mfee + lfee + lin - out - lout;
+    const bank = {}; t.filter(x => ['subscription','installment','fee'].includes(x.kind)).forEach(x => { const b = byId[x.member_id]?.bank || 'none'; bank[b] = (bank[b] || 0) + +x.amount; });
+    cur = {m, opening, sub, inst, mfee, lfee, lin, lout, out, closing, bank, newLoans: r.extra_loans_out ? null : newLoans.length, extraNote: r.note};
+    bal = closing;
+  }
+  // حالة القروض حتى نهاية الشهر
+  const upto = x => ym(x.period) <= M;
+  const disb = loans.filter(l => l.status === 'disbursed' || l.status === 'closed');
+  let outstanding = 0, due = 0, late = 0, lateAmt = 0;
+  for(const l of disb){
+    const paidAll = sum(tx.filter(x => x.loan_id === l.id && x.kind === 'installment' && upto(x)), x => x.amount);
+    const rem = (+l.total || 0) - paidAll; if(rem <= 0) continue; outstanding += rem;
+    if(l.first_due && ym(l.first_due) <= M){
+      const paidM = sum(tx.filter(x => x.loan_id === l.id && x.kind === 'installment' && ym(x.period) === M), x => x.amount);
+      const d = Math.min(+l.installment || rem, rem + paidM); due++; if(paidM < d){ late++; lateAmt += d - paidM; }
+    }
+  }
+  const active = ms.filter(m => (!m.status || m.status === 'active') && m.bank);
+  const subPaid = new Set(tx.filter(x => x.kind === 'subscription' && ym(x.period) === M && !isOpen(x)).map(x => x.member_id));
+  const feeBy = {}; tx.filter(x => x.kind === 'fee' && !x.loan_id && upto(x)).forEach(x => feeBy[x.member_id] = (feeBy[x.member_id] || 0) + +x.amount);
+  const feeLate = active.filter(m => (feeBy[m.id] || 0) < MEMBER_FEE);
+  const feesIn = sum(tx.filter(x => x.kind === 'fee' && upto(x)), x => x.amount);
+  const ledAll = (led||[]).filter(upto), ledIn = sum(ledAll.filter(x => x.kind === 'income'), x => x.amount), ledOut = sum(ledAll.filter(x => x.kind === 'expense'), x => x.amount);
+  return {...cur, owners: bankOwners(ms), activeCount: active.length, subPaidCount: active.filter(m => subPaid.has(m.id)).length,
+    outstanding, due, late, lateAmt, feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => MEMBER_FEE - (feeBy[m.id] || 0)),
+    feesIn, ledIn, ledOut, feesBalance: feesIn + ledIn - ledOut};
+}
+function reportBody(r){
+  const row = (a, b, strong) => `<tr><td>${a}</td><td class="n">${strong ? '<b>' : ''}${b}${strong ? '</b>' : ''}</td></tr>`;
+  const banks = BANK_ORDER.filter(b => b !== 'other').map(b => row(`${BANKS[b]}${r.owners[b] ? ' — ' + esc(r.owners[b]) : ''}`, fmt(r.bank[b] || 0)));
+  if(r.bank.other || r.bank.none) banks.push(row('بنوك أخرى / بدون بنك', fmt((r.bank.other || 0) + (r.bank.none || 0))));
+  const pct = (a, b) => b ? ` <span class="mut">(${Math.round(a / b * 100)}٪)</span>` : '';
+  return `<h3>1. المبالغ المحولة على حسابات الصندوق</h3><table><tbody>${banks.join('')}${row('مجموع إيراد الشهر', fmt(r.sub + r.inst + r.mfee + r.lfee), true)}</tbody></table>
+  <h3>2. حركة أموال الصندوق</h3><table><tbody>
+    ${row('الرصيد السابق', fmt(r.opening))}
+    ${row('اشتراكات شهرية', fmt(r.sub))}${row('أقساط قروض', fmt(r.inst))}
+    ${row('رسوم (عضوية وقروض)', fmt(r.mfee + r.lfee))}
+    ${r.lin ? row('إيرادات أخرى في بند الرسوم', fmt(r.lin)) : ''}
+    ${row(`قروض صُرفت هذا الشهر${r.newLoans != null ? ` (${r.newLoans})` : ''}`, '− ' + fmt(r.out))}
+    ${r.lout ? row('مصروفات الجمعية', '− ' + fmt(r.lout)) : ''}
+    ${row('الرصيد الحالي للصندوق', fmt(r.closing), true)}</tbody></table>
+  <h3>3. إحصاءات</h3><table><tbody>
+    ${row('عدد الأعضاء النشطين', r.activeCount)}
+    ${row('دفعوا اشتراك هذا الشهر', r.subPaidCount + pct(r.subPaidCount, r.activeCount))}
+    ${row('إجمالي المتبقي من القروض القائمة', fmt(r.outstanding))}
+    ${row('أقساط مستحقة هذا الشهر', r.due)}
+    ${row('أقساط متعثرة هذا الشهر', r.late + pct(r.late, r.due) + (r.lateAmt ? ` — ${fmt(r.lateAmt)} ريال` : ''))}</tbody></table>
+  <h3>4. بند الرسوم (منفصل عن رأس مال الصندوق)</h3><table><tbody>
+    ${row('رسوم عضوية محصلة هذا الشهر', fmt(r.mfee))}${row('رسوم قروض محصلة هذا الشهر', fmt(r.lfee))}
+    ${row('إجمالي الرسوم المحصلة', fmt(r.feesIn))}${row('إيرادات أخرى', fmt(r.ledIn))}${row('إجمالي المصروفات', '− ' + fmt(r.ledOut))}
+    ${row('رصيد بند الرسوم', fmt(r.feesBalance), true)}
+    ${row(`أعضاء عليهم رسوم عضوية (من ${fmt(MEMBER_FEE)})`, `${r.feeLateCount} — ${fmt(r.feeLateAmt)} ريال`)}</tbody></table>`;
+}
+async function viewReport(){
+  const now = new Date(); repMonth = repMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const r = await reportData(repMonth);
+  $('view').innerHTML = `<div class="card"><div class="row sp"><h2 style="margin:0">التقرير الشهري — ${monthTxt(repMonth + '-01')}</h2>
+    <div class="row"><input type="month" id="repM" value="${repMonth}" style="width:auto;margin:0"><button class="pri" id="repPdf">عرض كصفحة PDF</button></div></div>
+    ${r.extraNote ? `<p class="mut">${esc(r.extraNote)}</p>` : ''}${reportBody(r)}</div>`;
+  $('repM').onchange = e => { repMonth = e.target.value || repMonth; render(); };
+  $('repPdf').onclick = () => {
+    $('agree').innerHTML = `<div class="bar"><button class="pri" id="agPrint">طباعة / حفظ PDF</button><button id="agClose">إغلاق</button></div>
+    <div class="pgw" id="agW"><section class="page rep" id="agPage"><div class="frame"><img class="logo" src="/icon-192.png" alt="">
+      <div class="ttl">التقرير الشهري لصندوق تواد — ${monthTxt(repMonth + '-01')}</div>${reportBody(r)}
+      <p class="mut" style="margin-top:auto;font-size:11px">صدر من منصة صندوق تواد بتاريخ ${new Date().toLocaleDateString('en-GB')}</p></div></section></div>`;
+    $('agree').classList.remove('hide');
+    const sc = Math.min(1, (innerWidth - 24) / 794); $('agPage').style.transform = `scale(${sc})`; $('agW').style.width = 794*sc + 'px'; $('agW').style.height = 1123*sc + 'px';
+    $('agPrint').onclick = () => window.print(); $('agClose').onclick = () => $('agree').classList.add('hide');
+  };
+}
+
+// ---------- الأدمن: بند الرسوم ----------
+async function viewFees(){
+  const [{data: led, error}, {data: tx}, {data: ms}] = await Promise.all([
+    sb.from('fund_ledger').select('*').order('period', {ascending:false}),
+    sb.from('transactions').select('member_id, period, amount, loan_id, note').eq('kind', 'fee'),
+    sb.from('members').select('id, member_no, full_name, status, bank').order('member_no')
+  ]);
+  if(error) throw error;
+  const mfee = (tx||[]).filter(t => !t.loan_id).reduce((s,t) => s + +t.amount, 0), lfee = (tx||[]).filter(t => t.loan_id).reduce((s,t) => s + +t.amount, 0);
+  const lin = (led||[]).filter(x => x.kind === 'income').reduce((s,x) => s + +x.amount, 0), lout = (led||[]).filter(x => x.kind === 'expense').reduce((s,x) => s + +x.amount, 0);
+  const feeBy = {}; (tx||[]).filter(t => !t.loan_id).forEach(t => feeBy[t.member_id] = (feeBy[t.member_id] || 0) + +t.amount);
+  const late = (ms||[]).filter(m => (!m.status || m.status === 'active') && m.bank && (feeBy[m.id] || 0) < MEMBER_FEE);
+  const now = new Date(), cm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  $('view').innerHTML = `<div class="kpis">
+    <div class="kpi key"><span class="mut">رصيد بند الرسوم</span><b>${fmt(mfee + lfee + lin - lout)}</b></div>
+    <div class="kpi"><span class="mut">رسوم العضوية المحصلة</span><b>${fmt(mfee)}</b></div>
+    <div class="kpi"><span class="mut">رسوم القروض المحصلة</span><b>${fmt(lfee)}</b></div>
+    <div class="kpi"><span class="mut">المصروفات</span><b>${fmt(lout)}</b></div></div>
+  <div class="card"><h2>إضافة قيد</h2><form id="ledF"><div class="g2">
+    <label>النوع<select name="k"><option value="expense">مصروف</option><option value="income">إيراد</option></select></label>
+    <label>الشهر<input name="p" type="month" value="${cm}" required></label>
+    <label>البيان<input name="d" required></label><label>المبلغ<input name="a" type="number" min="1" step="0.01" required></label></div>
+    <button class="pri">حفظ</button></form></div>
+  <div class="card"><h2>قيود بند الرسوم</h2><table class="stack"><thead><tr><th>الشهر</th><th>البيان</th><th class="n">إيراد</th><th class="n">مصروف</th></tr></thead><tbody>
+    ${(led||[]).map(x => `<tr><td>${monthTxt(x.period)}</td><td>${esc(x.description)}</td><td class="n">${x.kind === 'income' ? fmt(x.amount) : ''}</td><td class="n">${x.kind === 'expense' ? fmt(x.amount) : ''}</td></tr>`).join('')}</tbody></table>
+    <p class="mut">رسوم العضوية ورسوم القروض تنحسب تلقائياً من الحركات، وما تحتاج تسجلها هنا.</p></div>
+  <div class="card"><h2>عليهم رسوم عضوية (${late.length})</h2><p class="mut">رسوم العضوية ${fmt(MEMBER_FEE)} ريال على كل عضو. سجّل المدفوع من تبويب الحركات بنوع "رسوم".</p>
+    <table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المدفوع</th><th class="n">المتبقي</th></tr></thead><tbody>
+    ${late.map(m => `<tr><td>${m.member_no ?? ''}</td><td>${esc(m.full_name)}</td><td class="n">${fmt(feeBy[m.id] || 0)}</td><td class="n">${fmt(MEMBER_FEE - (feeBy[m.id] || 0))}</td></tr>`).join('')}</tbody></table></div>`;
+  $('ledF').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    const {error} = await sb.from('fund_ledger').insert({period: d.get('p') + '-01', kind: d.get('k'), description: d.get('d').trim(), amount: +d.get('a'), created_by: me.id});
     if(error) throw error; toast('تم الحفظ'); render(); }); };
 }
 
