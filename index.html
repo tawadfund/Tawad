@@ -847,8 +847,8 @@ async function pushCard(){
     toast('تفعّلت الإشعارات'); pushCard(); });
   if($('pOff')) $('pOff').onclick = () => run($('pOff'), async () => { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); toast('توقفت الإشعارات'); pushCard(); });
   if($('pTest')) $('pTest').onclick = () => run($('pTest'), async () => { const {data: {session}} = await sb.auth.getSession();
-    const r = await fetch(SB_URL + '/functions/v1/notify', {method: 'POST', headers: {'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + session.access_token}, body: JSON.stringify({test: true})});
-    const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error('خدمة الإشعارات مو منشورة لين الحين (notify)');
+    const r = await fetch(SB_URL + '/functions/v1/dynamic-endpoint', {method: 'POST', headers: {'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + session.access_token}, body: JSON.stringify({test: true})});
+    const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error('خدمة الإشعارات مو منشورة لين الحين');
     toast(d.sent ? 'انرسل، شيك على الجوال' : 'ما انرسل لأي جهاز'); });
 }
 async function viewSettings(){
