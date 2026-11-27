@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -819,11 +820,11 @@ function memberKeys(m){ const ib = String(m.iban || '').replace(/\s/g, '').toUpp
 const keyTxt = k => !k ? 'بدون مرجع' : k.startsWith('acc:') ? 'حساب ' + k.slice(4) : k.startsWith('iban:') ? k.slice(5) : k.slice(5);
 const libs = {};
 function loadLib(src){ return libs[src] ||= new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete libs[src]; rej(new Error('تعذّر تحميل أداة قراءة الملف، تأكد من الإنترنت')); }; document.head.appendChild(s); }); }
-const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const XLSX_URLS = ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
 const PDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 
 async function parseStatement(file){
-  await loadLib(XLSX_URL);
+  if(!window.XLSX){ let ok = false; for(const u of XLSX_URLS){ try{ await loadLib(u); ok = true; break; } catch(e){} } if(!ok) throw new Error('تعذّر تحميل أداة قراءة الإكسل، تأكد من الإنترنت'); }
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:''});
   const h = rows.findIndex(r => r.some(c => /الوصف|Description/i.test(c)) && r.some(c => /تاريخ|Date/i.test(c)));
@@ -919,7 +920,7 @@ async function viewRecon(){
       <div class="row"><label style="margin:0;min-width:150px">الشهر<input type="month" id="rcM" value="${rcMonth}"></label>
       <label style="margin:0;min-width:130px">الحساب<select id="rcB">${BANK_ORDER.filter(b => b !== 'other').map(b => `<option value="${b}" ${b === rcBank ? 'selected' : ''}>${BANKS[b]}</option>`).join('')}</select></label></div></div>
     <p class="mut">ارفع كشف الحساب (Excel أو CSV) مثل ما ينزل من البنك. المنصة تتعرف على المحوّل من رقم حسابه أو آيبانه أو اسمه، وتطابقه مع مطالبات الأعضاء. التحويلات من يوم ${CUT_DAY} وطالع تُحسب للشهر الجاي.</p>
-    <form id="rcF" class="row"><input type="file" name="f" accept=".xls,.xlsx,.csv" required style="flex:1"><button class="pri">رفع الكشف</button></form></div>
+    <form id="rcF" class="row"><input type="file" name="f" id="rcFile" style="flex:1"><button class="pri">رفع الكشف</button></form><p id="rcErr" class="err" style="margin:8px 0 0"></p></div>
   <div class="kpis"><div class="kpi"><span class="mut">حركات الكشف لهالشهر</span><b>${lines.length} · ${fmt(tot)}</b></div>
     <div class="kpi key"><span class="mut">جاهز للاعتماد</span><b>${ready.length}</b></div>
     <div class="kpi"><span class="mut">ما نعرف صاحبها</span><b style="${unknown.length ? 'color:#b42318' : ''}">${unknown.length}</b></div>
@@ -944,13 +945,18 @@ async function viewRecon(){
 
   $('rcM').onchange = e => { rcMonth = e.target.value || rcMonth; render(); };
   $('rcB').onchange = e => { rcBank = e.target.value; render(); };
-  $('rcF').onsubmit = ev => { ev.preventDefault(); const f = new FormData(ev.target).get('f'); run(ev.submitter, async () => {
+  const doUp = btn => { const f = $('rcFile').files[0]; $('rcErr').textContent = ''; if(!f){ $('rcErr').textContent = 'اختر ملف الكشف أول'; return; }
+    run(btn, async () => { try{
+    $('rcErr').textContent = 'جارٍ قراءة ' + f.name + '…';
     const parsed = await parseStatement(f); if(!parsed.length) throw new Error('ما لقيت حركات إيداع في الملف');
     const rowsIns = parsed.map(p => ({...p, bank: rcBank, hash: [rcBank, p.txn_date, p.amount, p.balance, p.description].join('|'), created_by: me.id}));
     const {data: ins, error} = await sb.from('bank_lines').upsert(rowsIns, {onConflict: 'hash', ignoreDuplicates: true}).select('id'); if(error) throw error;
     const ps = [...new Set(parsed.map(p => p.period.slice(0, 7)))].sort();
     toast(`انقرأت ${parsed.length} حركة، الجديد منها ${(ins || []).length}${ps.length > 1 ? ' · الشهور: ' + ps.map(p => monthTxt(p + '-01')).join('، ') : ''}`);
-    if(!ps.includes(rcMonth)) rcMonth = ps[ps.length - 1]; render(); }); };
+    if(!ps.includes(rcMonth)) rcMonth = ps[ps.length - 1]; render();
+    } catch(e){ $('rcErr').textContent = 'ما انرفع: ' + errMsg(e); throw e; } }); };
+  $('rcF').onsubmit = ev => { ev.preventDefault(); doUp(ev.submitter); };
+  $('rcFile').onchange = () => doUp($('rcF').querySelector('button'));
   document.querySelectorAll('[data-link]').forEach(b => b.onclick = () => run(b, async () => {
     const id = +b.dataset.link, mid = +document.querySelector(`[data-lm="${id}"]`).value; if(!mid) throw new Error('اختر العضو');
     const l = lines.find(x => x.id === id);
