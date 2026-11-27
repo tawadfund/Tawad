@@ -312,8 +312,9 @@ async function boot(session){
 window.addEventListener('hashchange', () => me && render());
 
 function render(){
-  const tabs = [['me','حسابي']];
-  if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['recon','المطابقة'],['report','التقرير'],['fees','بند الرسوم'],['settings','الإعدادات']);
+  const tabs = [['me','كشفي']];
+  if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['recon','المطابقة'],['report','التقرير'],['fees','بند الرسوم']);
+  tabs.push(['settings','الإعدادات']);
   route = (location.hash.slice(1) || 'me').split('-')[0];
   if(!tabs.some(t => t[0]===route) && route !== 'loan' && !(route === 'member' && me.is_admin)) route = 'me';
   $('tabs').innerHTML = tabs.map(([k,t]) => `<a href="#${k}" class="${route===k?'on':''}">${t}</a>`).join('');
@@ -356,8 +357,6 @@ async function memberPage(m, self){
   const expSubs = expectedSubs(nowYM()), diff = subs - expSubs;
   if(!m.status || m.status === 'active') h += `<div class="rules">الاشتراكات حتى ${monthTxt(nowYM() + '-01')}: المتوقع <b>${fmt(expSubs)}</b> · المدفوع <b>${fmt(subs)}</b> ${Math.abs(diff) < 0.01 ? '<span class="chip">منتظم</span>' : diff > 0 ? `<span class="chip">مقدم ${fmt(diff)}</span>` : `<span class="chip bad">متعثر ${fmt(-diff)}</span>`}</div>`;
   if(self) h += await claimCard(m, active);
-  if(self) h += `<div class="card"><h2>تغيير كلمة السر</h2><form id="chPw"><div class="g2"><label>كلمة السر الجديدة (6 خانات أو أكثر)<input name="p1" type="password" autocomplete="new-password" minlength="6" required></label>
-    <label>أعد كتابتها<input name="p2" type="password" autocomplete="new-password" minlength="6" required></label></div><button class="pri">حفظ كلمة السر</button></form></div>`;
   if(self) h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
   else if(open) h += `<div class="card highlight">عنده طلب قرض قيد الإجراء: <a href="#loan-${open.id}">${fmt(open.amount)} ريال — ${ST[open.status]}</a></div>`;
   if((hist||[]).length){ const tot = hist.reduce((s,x) => s + +x.amount, 0);
@@ -374,11 +373,6 @@ async function memberPage(m, self){
   h += await docsHtml(m.id);
   $('view').innerHTML = h;
   if(self){ bindMe(open); bindClaim(m, active); } bindDocs($('view'));
-  if($('chPw')) $('chPw').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
-    if(d.get('p1') !== d.get('p2')) throw new Error('الكلمتين مو متطابقتين');
-    const {error} = await sb.auth.updateUser({password: d.get('p1')});
-    if(error) throw new Error(/same|different/i.test(error.message) ? 'اختر كلمة سر غير القديمة' : /reauth|nonce/i.test(error.message) ? 'لازم تأكيد من الإيميل: استخدم "نسيت كلمة السر" من صفحة الدخول' : errMsg(error));
-    e.target.reset(); toast('انحفظت كلمة السر الجديدة'); }); };
   if($('mEdit')) $('mEdit').onclick = () => editMember(m, () => render());
 }
 const RULES = `<div class="rules"><b>آلية ترتيب الصرف</b> — تُصرف القروض حسب الأولوية التالية، ولا تتغير لأي اعتبار:
@@ -832,12 +826,44 @@ async function viewFees(){
 }
 
 // ---------- الأدمن: الإعدادات ----------
+const VAPID_PUB = 'BJ24UDoW1nTRxs_lutW1Lh0DCsidaE4lP13YMJN8iWx0KCVwzCoA-UXZgVYQLCwqLvrQuchOIY0Pkok8b9iBYSQ';
+const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function pushCard(){
+  const box = $('pushC'); if(!box) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ok = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  let sub = null; if(ok){ try{ const r = await navigator.serviceWorker.getRegistration('/'); sub = r && await r.pushManager.getSubscription(); } catch(e){} }
+  const head = '<h2>الإشعارات</h2><p class="mut">يوصلك إشعار على الجوال أول ما ينسجل لك اشتراك أو قسط.</p>';
+  if(!ok) box.innerHTML = head + (ios && !standalone ? '<p><b>على الآيفون:</b> افتح الموقع من Safari، واضغط زر المشاركة ← <b>إضافة إلى الشاشة الرئيسية</b>، وبعدين افتح تواد من الأيقونة وارجع هنا.</p>' : '<p class="err">متصفحك ما يدعم الإشعارات. جرّب Chrome على أندرويد أو Safari على الآيفون (بعد إضافته للشاشة الرئيسية).</p>');
+  else if(Notification.permission === 'denied') box.innerHTML = head + '<p class="err">الإشعارات مقفلة لهالموقع من إعدادات المتصفح. افتح إعدادات الموقع في المتصفح واسمح بالإشعارات، وبعدين ارجع هنا.</p>';
+  else if(sub) box.innerHTML = head + '<p><span class="chip okc">✓ مفعّلة على هالجهاز</span></p><div class="row"><button type="button" id="pTest">إرسال إشعار تجربة</button><button type="button" id="pOff">إيقاف</button></div>';
+  else box.innerHTML = head + '<button type="button" class="pri" id="pOn">تفعيل الإشعارات على هالجهاز</button>';
+  if($('pOn')) $('pOn').onclick = () => run($('pOn'), async () => {
+    if(await Notification.requestPermission() !== 'granted') throw new Error('لازم تسمح بالإشعارات');
+    const reg = await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready;
+    const s = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUB)}), j = s.toJSON();
+    const {error} = await sb.from('push_subs').upsert({member_id: me.id, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, ua: navigator.userAgent.slice(0, 200)}, {onConflict: 'endpoint'});
+    if(error) throw new Error(/relation|schema cache/.test(error.message) ? 'الإشعارات مو مفعّلة في قاعدة البيانات لين الحين' : errMsg(error));
+    toast('تفعّلت الإشعارات'); pushCard(); });
+  if($('pOff')) $('pOff').onclick = () => run($('pOff'), async () => { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); toast('توقفت الإشعارات'); pushCard(); });
+  if($('pTest')) $('pTest').onclick = () => run($('pTest'), async () => { const {data: {session}} = await sb.auth.getSession();
+    const r = await fetch(SB_URL + '/functions/v1/notify', {method: 'POST', headers: {'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + session.access_token}, body: JSON.stringify({test: true})});
+    const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error('خدمة الإشعارات مو منشورة لين الحين (notify)');
+    toast(d.sent ? 'انرسل، شيك على الجوال' : 'ما انرسل لأي جهاز'); });
+}
 async function viewSettings(){
-  const sig = await signed(me.signature_path);
-  $('view').innerHTML = `<div class="card"><h2>توقيعي</h2><p class="mut">يظهر تلقائياً على الاتفاقيات التي تعتمدها. ارفع صورة التوقيع على ورق أبيض وتُزال الخلفية تلقائياً.</p>
+  const sig = me.is_admin ? await signed(me.signature_path) : null;
+  $('view').innerHTML = `<div class="card" id="pushC"><h2>الإشعارات</h2><p class="mut">جارٍ التحقق…</p></div><div class="card"><h2>تغيير كلمة السر</h2><form id="chPw"><div class="g2"><label>كلمة السر الجديدة (6 خانات أو أكثر)<input name="p1" type="password" autocomplete="new-password" minlength="6" required></label>
+    <label>أعد كتابتها<input name="p2" type="password" autocomplete="new-password" minlength="6" required></label></div><button class="pri">حفظ كلمة السر</button></form></div>` + (me.is_admin ? `<div class="card"><h2>توقيعي</h2><p class="mut">يظهر تلقائياً على الاتفاقيات التي تعتمدها. ارفع صورة التوقيع على ورق أبيض وتُزال الخلفية تلقائياً.</p>
     <div style="background:#fff;border:1px dashed var(--line);border-radius:10px;height:110px;display:grid;place-items:center;margin-bottom:10px">${sig ? `<img src="${sig}" style="max-height:100px;max-width:90%">` : '<span class="mut">لا يوجد توقيع</span>'}</div>
-    <form id="sigF"><input type="file" name="f" accept="image/*" required><button class="pri" style="margin-top:10px">رفع التوقيع</button></form></div>`;
-  $('sigF').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target).get('f'); run(e.submitter, async () => {
+    <form id="sigF"><input type="file" name="f" accept="image/*" required><button class="pri" style="margin-top:10px">رفع التوقيع</button></form></div>` : '');
+  if($('chPw')) $('chPw').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    if(d.get('p1') !== d.get('p2')) throw new Error('الكلمتين مو متطابقتين');
+    const {error} = await sb.auth.updateUser({password: d.get('p1')});
+    if(error) throw new Error(/same|different/i.test(error.message) ? 'اختر كلمة سر غير القديمة' : /reauth|nonce/i.test(error.message) ? 'لازم تأكيد من الإيميل: استخدم "نسيت كلمة السر" من صفحة الدخول' : errMsg(error));
+    e.target.reset(); toast('انحفظت كلمة السر الجديدة'); }); };
+  pushCard();
+  if($('sigF')) $('sigF').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target).get('f'); run(e.submitter, async () => {
     const blob = await cleanSig(f); const path = await upload(new File([blob], 'sig.png', {type:'image/png'}), `signatures/${me.id}`);
     const {error} = await sb.from('members').update({signature_path: path}).eq('id', me.id); if(error) throw error;
     me.signature_path = path; admins[me.id] = {...(admins[me.id]||{}), signature_path: path}; toast('تم حفظ التوقيع'); render(); }); };
@@ -860,19 +886,74 @@ function senderKey(desc, own){
   const d = String(desc || '').replace(/\s+/g, ' ');
   const ib = (d.match(/SA\d{22}/g) || []).find(x => !own || !x.endsWith(own)); if(ib) return 'iban:' + ib;
   const ac = (d.match(/\b\d{14}\b/g) || []).find(x => x !== own); if(ac) return 'acc:' + ac;
+  const nid = (d.match(/(?<!\d)[12]\d{9}(?!\d)/) || [])[0]; if(nid) return 'nid:' + nid;
   let m = d.match(/[A-Z]{4}SARI\s+(.+?)\s+EXTN/); if(m) return 'name:' + m[1].trim().toUpperCase();
   m = d.match(/([؀-ۿ]+(?:\s+[؀-ۿ]+)+)\s*$/); if(m && !/تحويل|الاهل/.test(m[1])) return 'name:' + m[1].trim();
   return null;
 }
-function memberKeys(m){ const ib = String(m.iban || '').replace(/\s/g, '').toUpperCase(), k = [];
+function memberKeys(m){ const ib = String(m.iban || '').replace(/\s/g, '').toUpperCase(), k = []; if(/^\d{10}$/.test(m.national_id || '')) k.push('nid:' + m.national_id);
   if(/^SA\d{22}$/.test(ib)){ k.push('iban:' + ib); if(ib.slice(4, 6) === '10') k.push('acc:' + ib.slice(-14)); } return k; }
-const keyTxt = k => !k ? 'بدون مرجع' : k.startsWith('acc:') ? 'حساب ' + k.slice(4) : k.startsWith('iban:') ? k.slice(5) : k.slice(5);
+const keyTxt = k => !k ? 'بدون مرجع' : k.startsWith('acc:') ? 'حساب ' + k.slice(4) : k.startsWith('nid:') ? 'هوية ' + k.slice(4) : k.startsWith('iban:') ? k.slice(5) : k.slice(5);
 const libs = {};
 function loadLib(src){ return libs[src] ||= new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete libs[src]; rej(new Error('تعذّر تحميل أداة قراءة الملف، تأكد من الإنترنت')); }; document.head.appendChild(s); }); }
 const XLSX_URLS = ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
 const PDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 
+async function parsePdfStatement(file){
+  await loadLib(PDF_URL); pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_URL.replace('pdf.min.js', 'pdf.worker.min.js');
+  const doc = await pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise, items = [];
+  for(let p = 1; p <= doc.numPages; p++){ const tc = await (await doc.getPage(p)).getTextContent();
+    for(const it of tc.items){ const s = it.str.normalize('NFKC').trim(); if(s) items.push({p, x: Math.round(it.transform[4]), y: Math.round(it.transform[5]), s}); } }
+  const {own, rows} = pdfRows(items);
+  if(!rows.length) throw new Error('ما قدرت أقرأ حركات من ملف PDF. تأكد إنه كشف حساب من البنك');
+  return rows.filter(r => r.credit && r.amt > 0).map(r => { const [dd, mm, yy] = r.date.split('/'), ymd = `${yy}-${mm}-${dd}`;
+    return {txn_date: ymd, kind: r.type, description: r.lines.join(' · '), amount: Math.round(r.amt*100)/100, balance: r.bal, sender_key: pdfKey(r.lines, own), period: periodOf(ymd) + '-01'}; });
+}
+function pdfRows(items){
+  // items: [{p,x,y,s}] — s already NFKC-normalized
+  const isDate = s => /^\d{2}\/\d{2}\/\d{4}$/.test(s), isNum = s => /^-?[\d,]+\.\d{2}$/.test(s), num = s => +s.replace(/,/g, '');
+  const own = (items.find(i => /^\d{14}$/.test(i.s)) || {}).s || '';
+  const pages = [...new Set(items.map(i => i.p))], rows = [];
+  for(const p of pages){
+    const P = items.filter(i => i.p === p), hb = P.find(i => i.s === 'Balance'), hc = P.find(i => i.s === 'Credit'), hd = P.find(i => i.s === 'Debit');
+    if(!hb || !hc) continue;
+    const foot = Math.max(...P.filter(i => /This statement|^Page:|الصفحة/.test(i.s)).map(i => i.y), -1);
+    const dates = P.filter(i => isDate(i.s) && i.y < hb.y - 3 && i.x > hc.x + 150).sort((a, b) => b.y - a.y);
+    dates.forEach((d, k) => {
+      const yEnd = k + 1 < dates.length ? dates[k + 1].y : foot;
+      const nums = P.filter(i => Math.abs(i.y - d.y) <= 2 && isNum(i.s) && i.x < hc.x + 60).sort((a, b) => a.x - b.x);
+      if(nums.length < 2) return;
+      const bal = num(nums[0].s), amtI = nums[nums.length - 1], amt = num(amtI.s);
+      const xCredit = hd ? (amtI.x >= (hd.x + hc.x) / 2 + 20) : true;
+      const type = (P.find(i => Math.abs(i.y - d.y) <= 2 && i.x > hc.x + 230 && i.x < d.x - 5) || {}).s || '';
+      const lines = P.filter(i => i.y <= d.y + 2 && i.y > yEnd + 2 && i.x > hc.x + 50 && i.x < hc.x + 230).sort((a, b) => b.y - a.y || a.x - b.x).map(i => i.s);
+      rows.push({date: d.s, bal, amt, xCredit, type, lines});
+    });
+  }
+  let prev = null;
+  rows.forEach(r => { r.credit = prev != null && Math.abs(prev + r.amt - r.bal) < 0.02 ? true : prev != null && Math.abs(prev - r.amt - r.bal) < 0.02 ? false : r.xCredit; prev = r.bal; });
+  return {own, rows};
+}
+function pdfKey(lines, own){
+  const t = lines.join(' ');
+  const ib = (t.match(/SA\d{22}/g) || []).find(x => !own || !x.endsWith(own)); if(ib) return 'iban:' + ib;
+  const ac = (t.match(/(?<!\d)\d{14}(?!\d)/g) || []).find(x => x !== own); if(ac) return 'acc:' + ac;
+  const nid = (t.match(/(?<!\d)[12]\d{9}(?!\d)/) || [])[0]; if(nid) return 'nid:' + nid;
+  const bad = /تحويل|الموقع|الاهلي|الأهلي|نظام|نظم|مصاريف|حوالات|رقم|مرجع|المدفوعات|ريال/;
+  for(let k = 0; k < lines.length; k++){
+    let L = lines[k];
+    if(/^[؀-ۿ]+(?:\s+[؀-ۿ]+)+$/.test(L) && !bad.test(L)){
+      if(k + 1 < lines.length && /^[؀-ۿ]{1,3}$/.test(lines[k + 1])) L += lines[k + 1];
+      return 'name:' + L.replace(/\s+/g, ' ').trim();
+    }
+  }
+  for(let k = 1; k < lines.length; k++) if(/^([A-Z]{4}SARI|SASABB)$/.test(lines[k]) && /^[A-Z][A-Z .'-]+$/.test(lines[k - 1])) return 'name:' + lines[k - 1].replace(/\s+/g, ' ').trim();
+  const m = t.match(/[A-Z]{4}SARI\s+(.+?)\s+EXTN/); if(m) return 'name:' + m[1].trim().toUpperCase();
+  return null;
+}
+
 async function parseStatement(file){
+  if(/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) return parsePdfStatement(file);
   if(!window.XLSX){ let ok = false; for(const u of XLSX_URLS){ try{ await loadLib(u); ok = true; break; } catch(e){} } if(!ok) throw new Error('تعذّر تحميل أداة قراءة الإكسل، تأكد من الإنترنت'); }
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:''});
@@ -968,7 +1049,7 @@ async function viewRecon(){
   $('view').innerHTML = `<div class="card"><div class="row sp"><h2 style="margin:0">مطابقة الحوالات</h2>
       <div class="row"><label style="margin:0;min-width:150px">الشهر<input type="month" id="rcM" value="${rcMonth}"></label>
       <label style="margin:0;min-width:130px">الحساب<select id="rcB">${BANK_ORDER.filter(b => b !== 'other').map(b => `<option value="${b}" ${b === rcBank ? 'selected' : ''}>${BANKS[b]}</option>`).join('')}</select></label></div></div>
-    <p class="mut">ارفع كشف الحساب (Excel أو CSV) مثل ما ينزل من البنك. المنصة تتعرف على المحوّل من رقم حسابه أو آيبانه أو اسمه، وتطابقه مع مطالبات الأعضاء. التحويلات من يوم ${CUT_DAY} وطالع تُحسب للشهر الجاي.</p>
+    <p class="mut">ارفع كشف الحساب (PDF أو Excel) مثل ما ينزل من البنك أو يوصلك على الإيميل. المنصة تتعرف على المحوّل من رقم حسابه أو آيبانه أو اسمه، وتطابقه مع مطالبات الأعضاء. التحويلات من يوم ${CUT_DAY} وطالع تُحسب للشهر الجاي.</p>
     <form id="rcF" class="row"><input type="file" name="f" id="rcFile" style="flex:1"><button class="pri">رفع الكشف</button></form><p id="rcErr" class="err" style="margin:8px 0 0"></p></div>
   <div class="kpis"><div class="kpi"><span class="mut">حركات الكشف لهالشهر</span><b>${lines.length} · ${fmt(tot)}</b></div>
     <div class="kpi key"><span class="mut">جاهز للاعتماد</span><b>${ready.length}</b></div>
@@ -998,8 +1079,11 @@ async function viewRecon(){
     run(btn, async () => { try{
     $('rcErr').textContent = 'جارٍ قراءة ' + f.name + '…';
     const parsed = await parseStatement(f); if(!parsed.length) throw new Error('ما لقيت حركات إيداع في الملف');
-    const rowsIns = parsed.map(p => ({...p, bank: rcBank, hash: [rcBank, p.txn_date, p.amount, p.balance, p.description].join('|'), created_by: me.id}));
-    const {data: ins, error} = await sb.from('bank_lines').upsert(rowsIns, {onConflict: 'hash', ignoreDuplicates: true}).select('id'); if(error) throw error;
+    const dates = parsed.map(p => p.txn_date).sort(), {data: ex} = await sb.from('bank_lines').select('txn_date, amount, balance').eq('bank', rcBank).gte('txn_date', dates[0]).lte('txn_date', dates[dates.length - 1]);
+    const seen = new Set((ex || []).map(l => [l.txn_date, +l.amount, l.balance == null ? '' : +l.balance].join('|')));
+    const fresh = parsed.filter(p => !seen.has([p.txn_date, +p.amount, p.balance == null ? '' : +p.balance].join('|')));
+    const rowsIns = fresh.map(p => ({...p, bank: rcBank, hash: [rcBank, p.txn_date, p.amount, p.balance].join('|'), created_by: me.id}));
+    const {data: ins, error} = rowsIns.length ? await sb.from('bank_lines').upsert(rowsIns, {onConflict: 'hash', ignoreDuplicates: true}).select('id') : {data: []}; if(error) throw error;
     const ps = [...new Set(parsed.map(p => p.period.slice(0, 7)))].sort();
     toast(`انقرأت ${parsed.length} حركة، الجديد منها ${(ins || []).length}${ps.length > 1 ? ' · الشهور: ' + ps.map(p => monthTxt(p + '-01')).join('، ') : ''}`);
     if(!ps.includes(rcMonth)) rcMonth = ps[ps.length - 1]; render();
