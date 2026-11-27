@@ -52,6 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px 6px
 .highlight{border-color:#e6c44d;box-shadow:0 0 0 3px #fff4c2}
 @media(max-width:600px){.g2{grid-template-columns:minmax(0,1fr)}.stack thead{display:none}.stack tr{display:grid;padding:8px 0;border-bottom:1px solid var(--line)}.stack td{border:0;padding:2px 0;display:flow-root;padding-inline-start:7.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mut);font-size:13px}}
 .bankf{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.bankf button{flex-direction:column;align-items:flex-start;gap:0;line-height:1.3;padding:6px 14px}.bankf small{font-size:12px;color:var(--mut)}.bankf button.on{background:var(--g);border-color:var(--g);color:#fff}.bankf button.on small{color:#d8ecd0}
+td .okc,.okc{color:var(--g);font-weight:700}.chip.okc{background:var(--g2);border-color:var(--g)}
 tr.grp th{background:var(--g2);color:var(--g);font-weight:700;font-size:14px;padding:7px 10px}
 .ent td input{display:inline-block;min-height:40px;margin:0;max-width:120px;text-align:end}
 .ent tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
@@ -554,10 +555,10 @@ async function viewTx(){
 
   $('view').innerHTML = `<div class="card">
     <div class="row sp"><h2 style="margin:0">الإدخال الشهري</h2><label style="margin:0;min-width:170px">الشهر<input type="month" id="txM" value="${txMonth}"></label></div>
-    <p class="mut">اكتب المبلغ واضغط Enter أو السهم للأسفل للعضو التالي. الخانة الفاضية ما تنحفظ، واللي انسجل سابقاً لهذا الشهر يظهر في عمود "مسجل".</p>
+    <p class="mut">اللي عليه <b class="okc">✓ مدفوع</b> مسجل ومحفوظ، وما يحتاج تسوي له شي. اكتب المبلغ لغير المسجلين واضغط Enter للعضو التالي، وبعدين <b>حفظ</b>.</p>
     <div id="bf"></div>
     <div class="row" style="margin-bottom:8px"><button type="button" id="fillAll">تعبئة المستحق</button><button type="button" id="clearAll">تفريغ</button><button type="button" class="pri" data-save>حفظ</button></div>
-    <table class="stack ent" id="entT"><thead><tr><th>العضو</th><th>مسجل هالشهر</th><th class="n">اشتراك</th><th class="n">القسط المستحق</th><th class="n">قسط</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
+    <table class="stack ent" id="entT"><thead><tr><th>العضو</th><th>الحالة</th><th class="n">اشتراك</th><th class="n">القسط المستحق</th><th class="n">قسط</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
     <div class="row" style="margin-top:10px"><button type="button" class="pri" data-save>حفظ</button></div></div>
   <div class="card"><h2>حركة مفردة (رسوم أو تعديل)</h2><form id="txF"><div class="g2">
     <label>العضو<select name="m" required>${all.slice().sort(bankSort).map(m => `<option value="${m.id}">${m.member_no ?? ''} — ${esc(m.full_name)}${m.bank ? ' · ' + BANKS[m.bank] : ''}</option>`).join('')}</select></label>
@@ -568,28 +569,43 @@ async function viewTx(){
   <div class="card"><h2>آخر الحركات</h2><table class="stack"><thead><tr><th>العضو</th><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${(tx||[]).map(t => `<tr><td>${mLink(t.member_id, t.members?.full_name)}</td><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table></div>`;
 
   function chips(){ $('bf').innerHTML = bankChips(ms, f, owners, has); }
+  const addOpen = new Set();
+  const dueOf = m => { const l = loanOf(m.id); return l && (!l.first_due || String(l.first_due).slice(0, 7) <= txMonth) ? (+l.installment || 0) : 0; };
+  const recS = m => prev[m.id]?.subscription || 0, recI = m => prev[m.id]?.installment || 0;
+  const status = m => { const l = loanOf(m.id), s = recS(m) + (+draft[m.id].s || 0), i = recI(m) + (+draft[m.id].i || 0);
+    const subOk = s >= SUB, instOk = i >= dueOf(m), saved = recS(m) || recI(m), any = s || i;
+    if(subOk && instOk) return saved && !(+draft[m.id].s || +draft[m.id].i) ? '<span class="chip okc">✓ مدفوع</span>' : (any ? '<span class="chip okc">مكتمل — احفظ</span>' : '');
+    return any ? '<span class="chip wait">جزئي</span>' : '<span class="chip" style="opacity:.6">غير مسجل</span>'; };
+  const cell = (m, k) => { const rec = k === 's' ? recS(m) : recI(m), d = draft[m.id][k];
+    const inp = `<input data-m="${m.id}" data-k="${k}" inputmode="numeric" enterkeyhint="next" value="${d}" placeholder="${rec ? 'إضافة' : '0'}" aria-label="${k === 's' ? 'اشتراك' : 'قسط'} ${esc(m.full_name)}">`;
+    if(!rec) return inp;
+    return `<span class="okc">✓ ${fmt(rec)}</span>${addOpen.has(m.id + k) ? '<br>' + inp : ` <a href="#" data-add="${m.id + k}" class="mut" style="font-size:12px">+ إضافة</a>`}`; };
   function totals(){
-    const list = shown(), sumS = list.reduce((a, m) => a + (+draft[m.id].s || 0), 0), sumI = list.reduce((a, m) => a + (+draft[m.id].i || 0), 0), due = list.reduce((a, m) => a + (loanOf(m.id)?.installment || 0), 0);
-    $('entT').tFoot.innerHTML = list.length ? `<tr><td>المجموع · ${list.length} عضو</td><td>${list.filter(has).length}/${list.length} مسجل</td><td class="n">${fmt(sumS)}</td><td class="n">${fmt(due)}</td><td class="n">${fmt(sumI)}</td></tr>` : '';
+    const list = shown(), sumS = list.reduce((a, m) => a + (+draft[m.id].s || 0), 0), sumI = list.reduce((a, m) => a + (+draft[m.id].i || 0), 0), due = list.reduce((a, m) => a + dueOf(m), 0);
+    const rS = list.reduce((a, m) => a + recS(m), 0), rI = list.reduce((a, m) => a + recI(m), 0);
+    const line = (r, n) => `${fmt(r + n)}${n ? `<br><span class="mut" style="font-size:12px">مسجل ${fmt(r)} + جديد ${fmt(n)}</span>` : ''}`;
+    $('entT').tFoot.innerHTML = list.length ? `<tr><td>المجموع · ${list.length} عضو</td><td>${list.filter(m => recS(m) || recI(m)).length} مدفوع · ${list.filter(m => !(recS(m) || recI(m))).length} غير مسجل</td><td class="n">${line(rS, sumS)}</td><td class="n">${fmt(due)}</td><td class="n">${line(rI, sumI)}</td></tr>` : '';
+    shown().forEach(m => { const c = document.querySelector(`[data-st-m="${m.id}"]`); if(c) c.innerHTML = status(m); });
     const n = pending().length; document.querySelectorAll('[data-save]').forEach(b => b.textContent = n ? `حفظ (${n})` : 'حفظ');
   }
   function draw(){
     let last; chips();
     $('entT').tBodies[0].innerHTML = shown().map(m => { const l = loanOf(m.id), d = draft[m.id];
       const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="5">${bankTitle(m.bank, owners)}</th></tr>`) : '';
-      return g + `<tr><td>${m.member_no ?? ''} — ${mLink(m.id, m.full_name)}</td><td>${prevTxt(m)}</td>
-        <td class="n"><input data-m="${m.id}" data-k="s" inputmode="numeric" enterkeyhint="next" value="${d.s}" placeholder="0" aria-label="اشتراك ${esc(m.full_name)}"></td>
-        <td class="n">${l ? fmt(l.installment) : '—'}</td>
-        <td class="n">${l ? `<input data-m="${m.id}" data-k="i" inputmode="numeric" enterkeyhint="next" value="${d.i}" placeholder="0" aria-label="قسط ${esc(m.full_name)}">` : '—'}</td></tr>`; }).join('')
+      return g + `<tr><td>${m.member_no ?? ''} — ${mLink(m.id, m.full_name)}</td><td data-st-m="${m.id}">${status(m)}</td>
+        <td class="n">${cell(m, 's')}</td>
+        <td class="n">${dueOf(m) ? fmt(dueOf(m)) : (l ? `<span class="mut" style="font-size:12px">يبدأ ${monthTxt(l.first_due)}</span>` : '—')}</td>
+        <td class="n">${dueOf(m) || recI(m) ? cell(m, 'i') : '—'}</td></tr>`; }).join('')
       || '<tr><td colspan="5" class="mut">لا يوجد أعضاء نشطين في هذا الحساب.</td></tr>';
     totals();
   }
   $('bf').onclick = e => { const b = e.target.closest('[data-bf]'); if(!b) return; f = b.dataset.bf; setBankFilter(f); draw(); };
+  $('entT').addEventListener('click', e => { const a = e.target.closest('[data-add]'); if(!a) return; e.preventDefault(); addOpen.add(a.dataset.add); draw(); const inp = $('entT').querySelector(`input[data-m="${parseInt(a.dataset.add)}"][data-k="${a.dataset.add.slice(-1)}"]`); if(inp) inp.focus(); });
   $('entT').addEventListener('input', e => { const el = e.target; if(!el.dataset.m) return; el.value = digits(el.value); draft[el.dataset.m][el.dataset.k] = el.value; totals(); chips(); });
   $('entT').addEventListener('keydown', e => { const el = e.target; if(!el.dataset.k || !['Enter','ArrowDown','ArrowUp'].includes(e.key)) return; e.preventDefault();
     const ins = [...$('entT').querySelectorAll(`input[data-k="${el.dataset.k}"]`)], nx = ins[ins.indexOf(el) + (e.key === 'ArrowUp' ? -1 : 1)]; if(nx){ nx.focus(); nx.select(); } });
   $('fillAll').onclick = () => { let n = 0; shown().forEach(m => { const p = prev[m.id] || {}, l = loanOf(m.id), d = draft[m.id];
-      if(!p.subscription && !d.s){ d.s = String(SUB); n++; } if(l && !p.installment && !d.i){ d.i = String(l.installment); n++; } });
+      if(!p.subscription && !d.s){ d.s = String(SUB); n++; } if(dueOf(m) && !p.installment && !d.i){ d.i = String(dueOf(m)); n++; } });
     draw(); toast(n ? 'تمت تعبئة المستحق لغير المسجلين — عدّل الاستثناءات ثم احفظ' : 'كل الأعضاء هنا مسجلين لهذا الشهر'); };
   $('clearAll').onclick = () => { shown().forEach(m => draft[m.id] = {s:'', i:''}); draw(); };
   $('txM').onchange = e => { if(pending().length && !confirm('فيه مبالغ ما انحفظت، تبي تغيّر الشهر وتتركها؟')){ e.target.value = txMonth; return; } txMonth = e.target.value || txMonth; render(); };
