@@ -356,6 +356,8 @@ async function memberPage(m, self){
   const expSubs = expectedSubs(nowYM()), diff = subs - expSubs;
   if(!m.status || m.status === 'active') h += `<div class="rules">الاشتراكات حتى ${monthTxt(nowYM() + '-01')}: المتوقع <b>${fmt(expSubs)}</b> · المدفوع <b>${fmt(subs)}</b> ${Math.abs(diff) < 0.01 ? '<span class="chip">منتظم</span>' : diff > 0 ? `<span class="chip">مقدم ${fmt(diff)}</span>` : `<span class="chip bad">متعثر ${fmt(-diff)}</span>`}</div>`;
   if(self) h += await claimCard(m, active);
+  if(self) h += `<div class="card"><h2>تغيير كلمة السر</h2><form id="chPw"><div class="g2"><label>كلمة السر الجديدة (6 خانات أو أكثر)<input name="p1" type="password" autocomplete="new-password" minlength="6" required></label>
+    <label>أعد كتابتها<input name="p2" type="password" autocomplete="new-password" minlength="6" required></label></div><button class="pri">حفظ كلمة السر</button></form></div>`;
   if(self) h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
   else if(open) h += `<div class="card highlight">عنده طلب قرض قيد الإجراء: <a href="#loan-${open.id}">${fmt(open.amount)} ريال — ${ST[open.status]}</a></div>`;
   if((hist||[]).length){ const tot = hist.reduce((s,x) => s + +x.amount, 0);
@@ -372,6 +374,11 @@ async function memberPage(m, self){
   h += await docsHtml(m.id);
   $('view').innerHTML = h;
   if(self){ bindMe(open); bindClaim(m, active); } bindDocs($('view'));
+  if($('chPw')) $('chPw').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    if(d.get('p1') !== d.get('p2')) throw new Error('الكلمتين مو متطابقتين');
+    const {error} = await sb.auth.updateUser({password: d.get('p1')});
+    if(error) throw new Error(/same|different/i.test(error.message) ? 'اختر كلمة سر غير القديمة' : /reauth|nonce/i.test(error.message) ? 'لازم تأكيد من الإيميل: استخدم "نسيت كلمة السر" من صفحة الدخول' : errMsg(error));
+    e.target.reset(); toast('انحفظت كلمة السر الجديدة'); }); };
   if($('mEdit')) $('mEdit').onclick = () => editMember(m, () => render());
 }
 const RULES = `<div class="rules"><b>آلية ترتيب الصرف</b> — تُصرف القروض حسب الأولوية التالية، ولا تتغير لأي اعتبار:
