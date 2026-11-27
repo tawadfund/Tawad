@@ -55,6 +55,7 @@ table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px 6px
 td .okc,.okc{color:var(--g);font-weight:700}.chip.okc{background:var(--g2);border-color:var(--g)}
 tr.grp th{background:var(--g2);color:var(--g);font-weight:700;font-size:14px;padding:7px 10px}
 .ent td input{display:inline-block;min-height:40px;margin:0;max-width:120px;text-align:end}
+.sumc{border:2px solid var(--ink);border-radius:12px;padding:12px 14px;margin:10px 0}.sumc h3{margin:0 0 8px;font-size:17px}.sumg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.sumg div{display:flex;flex-direction:column}.sumg span,.sumt span{font-size:13px;opacity:.75}.sumg b{font-size:20px}.sumt{margin-top:10px;padding-top:10px;border-top:1px dashed var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.sumt b{font-size:26px}
 .ent tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 @media(max-width:600px){.ent td input{max-width:none}}
 .page.rep{font-size:13px}.page.rep table{width:100%;border-collapse:collapse;margin:2px 0 6px}.page.rep td{border:1px solid #999;padding:3px 8px;color:#000}.page.rep h3{font-size:15px;margin:8px 0 4px}.page.rep .mut{color:#444}
@@ -538,7 +539,7 @@ async function viewTx(){
   const period = txMonth + '-01';
   const [{data: all, error}, {data: loans}, {data: monthTx, error: e2}, {data: tx}] = await Promise.all([
     sb.from('members').select('id, full_name, member_no, bank, status, is_admin, admin_banks').order('member_no'),
-    sb.from('loans').select('id, member_id, total, installment').eq('status','disbursed'),
+    sb.from('loans').select('id, member_id, total, installment, first_due').eq('status','disbursed'),
     sb.from('transactions').select('member_id, kind, amount').eq('period', period),
     sb.from('transactions').select('*, members!transactions_member_id_fkey(full_name)').order('created_at', {ascending:false}).limit(40)
   ]);
@@ -557,6 +558,7 @@ async function viewTx(){
     <div class="row sp"><h2 style="margin:0">الإدخال الشهري</h2><label style="margin:0;min-width:170px">الشهر<input type="month" id="txM" value="${txMonth}"></label></div>
     <p class="mut">اللي عليه <b class="okc">✓ مدفوع</b> مسجل ومحفوظ، وما يحتاج تسوي له شي. اكتب المبلغ لغير المسجلين واضغط Enter للعضو التالي، وبعدين <b>حفظ</b>.</p>
     <div id="bf"></div>
+    <div id="sumBox"></div>
     <div class="row" style="margin-bottom:8px"><button type="button" id="fillAll">تعبئة المستحق</button><button type="button" id="clearAll">تفريغ</button><button type="button" class="pri" data-save>حفظ</button></div>
     <table class="stack ent" id="entT"><thead><tr><th>العضو</th><th>الحالة</th><th class="n">اشتراك</th><th class="n">القسط المستحق</th><th class="n">قسط</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
     <div class="row" style="margin-top:10px"><button type="button" class="pri" data-save>حفظ</button></div></div>
@@ -586,6 +588,17 @@ async function viewTx(){
     const line = (r, n) => `${fmt(r + n)}${n ? `<br><span class="mut" style="font-size:12px">مسجل ${fmt(r)} + جديد ${fmt(n)}</span>` : ''}`;
     $('entT').tFoot.innerHTML = list.length ? `<tr><td>المجموع · ${list.length} عضو</td><td>${list.filter(m => recS(m) || recI(m)).length} مدفوع · ${list.filter(m => !(recS(m) || recI(m))).length} غير مسجل</td><td class="n">${line(rS, sumS)}</td><td class="n">${fmt(due)}</td><td class="n">${line(rI, sumI)}</td></tr>` : '';
     shown().forEach(m => { const c = document.querySelector(`[data-st-m="${m.id}"]`); if(c) c.innerHTML = status(m); });
+    const groups = {}; list.forEach(m => (groups[m.bank || ''] ||= []).push(m));
+    $('sumBox').innerHTML = Object.entries(groups).map(([b, g]) => {
+      const S = g.reduce((x, m) => x + recS(m) + (+draft[m.id].s || 0), 0), I = g.reduce((x, m) => x + recI(m) + (+draft[m.id].i || 0), 0);
+      const full = m => recS(m) + (+draft[m.id].s || 0) >= SUB && recI(m) + (+draft[m.id].i || 0) >= dueOf(m);
+      const ok = g.filter(full), late = g.filter(m => !full(m));
+      const dest = b === 'riyad' ? 'إجمالي المودَع في الحساب الرئيسي' : b ? `المطلوب تحويله من ${BANKS[b]} إلى الحساب الرئيسي (${BANKS.riyad})` : 'الإجمالي';
+      return `<div class="sumc"><h3>${b ? BANKS[b] : 'بدون بنك'} · ${monthTxt(txMonth + '-01')}</h3>
+        <div class="sumg"><div><span>سدّد كامل</span><b class="okc">${ok.length}</b></div><div><span>متخلف / ناقص</span><b style="color:#b42318">${late.length}</b></div>
+        <div><span>إيرادات الاشتراكات</span><b>${fmt(S)}</b></div><div><span>إيرادات الأقساط</span><b>${fmt(I)}</b></div></div>
+        <div class="sumt"><span>${dest}</span><b>${fmt(S + I)}</b></div>
+        ${late.length ? `<p class="mut" style="margin:6px 0 0;font-size:13px">المتخلفين: ${late.map(m => `${m.member_no ?? ''} ${esc(m.full_name)}`).join(' · ')}</p>` : ''}</div>`; }).join('');
     const n = pending().length; document.querySelectorAll('[data-save]').forEach(b => b.textContent = n ? `حفظ (${n})` : 'حفظ');
   }
   function draw(){
