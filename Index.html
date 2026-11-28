@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f6b1f">
+<title>صندوق تواد</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="تواد">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#f5f6f2;--card:#fff;--ink:#14201a;--mut:#5d6a61;--line:#e1e5df;--g:#2f6b1f;--g2:#e8f2df;--y:#fff4c2;--bad:#b3261e;--ok:#1d7a3a}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Arabic",Tahoma,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.wrap{max-width:980px;margin:auto;padding:14px 16px 60px}
+.top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:6px 0 12px}
+.brand{display:flex;align-items:center;gap:10px}.brand img{width:44px;height:44px;border-radius:50%;background:#fff}
+h1{font-size:24px;margin:0;line-height:1.1}h2{font-size:20px;margin:0 0 10px}h3{font-size:17px;margin:14px 0 6px}
+.mut{color:var(--mut);font-size:14px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px}.tabs a{flex:none;padding:9px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:15px}
+.tabs a.on{background:var(--g);color:#fff;border-color:var(--g)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.kpi b{display:block;font-size:22px;white-space:nowrap}
+.kpi.key{background:var(--g);color:#fff;border-color:var(--g)}.kpi.key .mut{color:#d8ecd0}
+button,.btn{font:inherit;font-size:15px;min-height:44px;padding:0 16px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+button.pri{background:var(--g);border-color:var(--g);color:#fff}button.warn{color:var(--bad);border-color:#efc9c6}
+button:disabled{opacity:.5;cursor:progress}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #7fb35a;outline-offset:2px}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:10px}
+input,select,textarea{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px;min-height:44px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sp{justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:start}th{color:var(--mut);font-weight:500;font-size:13px}
+.n{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:13px;padding:2px 10px;border-radius:99px;background:var(--g2);color:var(--g);white-space:nowrap}
+.chip.wait{background:var(--y);color:#6b5200}.chip.bad{background:#fbe4e2;color:var(--bad)}
+.big{font-size:44px;font-weight:700;line-height:1;color:var(--g)}
+.steps{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px}.steps li{padding:8px 12px;border-radius:10px;background:var(--bg);font-size:15px}.steps li.done{background:var(--g2);color:var(--g)}.steps li.now{background:var(--y)}
+.rules{background:var(--bg);border-radius:12px;padding:10px 14px;margin:10px 0;font-size:15px}.rules ol,.rules ul{margin:6px 0;padding-inline-start:22px}
+.login{max-width:380px;margin:8vh auto;text-align:center}.login img{width:110px;height:110px;border-radius:50%;background:#fff;border:1px solid var(--line)}
+.err{color:var(--bad);font-size:14px;min-height:1.3em}
+.hide{display:none!important}
+.dlg{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.dlg .card{max-width:460px;width:100%;max-height:90vh;overflow:auto;margin:0}
+.toast{position:fixed;bottom:20px;inset-inline:16px;margin:auto;max-width:420px;background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;z-index:30;text-align:center}
+.highlight{border-color:#e6c44d;box-shadow:0 0 0 3px #fff4c2}
+@media(max-width:600px){.g2{grid-template-columns:minmax(0,1fr)}.stack thead{display:none}.stack tr{display:grid;padding:8px 0;border-bottom:1px solid var(--line)}.stack td{border:0;padding:2px 0;display:flow-root;padding-inline-start:7.5em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7em;margin-inline-start:-7.5em;color:var(--mut);font-size:13px}}
+.bankf{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.bankf button{flex-direction:column;align-items:flex-start;gap:0;line-height:1.3;padding:6px 14px}.bankf small{font-size:12px;color:var(--mut)}.bankf button.on{background:var(--g);border-color:var(--g);color:#fff}.bankf button.on small{color:#d8ecd0}
+td .okc,.okc{color:var(--g);font-weight:700}.chip.okc{background:var(--g2);border-color:var(--g)}
+tr.grp th{background:var(--g2);color:var(--g);font-weight:700;font-size:14px;padding:7px 10px}
+.ent td input{display:inline-block;min-height:40px;margin:0;max-width:120px;text-align:end}
+.sumc{border:2px solid var(--ink);border-radius:12px;padding:12px 14px;margin:10px 0}.sumc h3{margin:0 0 8px;font-size:17px}.sumg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.sumg div{display:flex;flex-direction:column}.sumg span,.sumt span{font-size:13px;opacity:.75}.sumg b{font-size:20px}.sumt{margin-top:10px;padding-top:10px;border-top:1px dashed var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.sumt b{font-size:26px}
+.ent tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+@media(max-width:600px){.ent td input{max-width:none}}
+.page.rep{font-size:13px}.page.rep table{width:100%;border-collapse:collapse;margin:2px 0 6px}.page.rep td{border:1px solid #999;padding:3px 8px;color:#000}.page.rep h3{font-size:15px;margin:8px 0 4px}.page.rep .mut{color:#444}
+/* الاتفاقية */
+#agree{position:fixed;inset:0;background:#555;overflow:auto;z-index:25;padding:12px}
+#agree .bar{max-width:794px;margin:0 auto 10px;display:flex;gap:8px}
+.page{width:794px;height:1123px;background:#fff;color:#000;padding:30px;margin:0;font:14px/1.6 Arial,"Noto Naskh Arabic",sans-serif;transform-origin:top right}
+.pgw{margin:0 auto;overflow:hidden}
+.frame{height:100%;border:3px double #000;outline:1px solid #000;outline-offset:3px;padding:20px 32px 14px;display:flex;flex-direction:column}
+.frame .logo{display:block;margin:2px auto 0;height:54px}
+.ttl{text-align:center;font:700 22px "Noto Naskh Arabic",serif;text-decoration:underline;text-underline-offset:7px;margin:6px 0}
+.page p{margin:0 0 3px;text-align:justify}.page h4{font-size:14.5px;margin:5px 0 1px}.page ul{margin:0 0 4px;padding-inline-start:22px}
+.halves{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.sched{width:100%;border-collapse:collapse;font-size:12.5px;line-height:1.3}.sched th,.sched td{border:1px solid #000;padding:1.5px 5px;text-align:center;color:#000;font-size:inherit}.sched th{background:#f0f0f0;font-weight:700}
+.signs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:auto;padding-top:8px}.signs .dots{border-bottom:2px dotted #000;height:22px}.signs .s{position:relative;height:70px}.signs .s img{position:absolute;top:-16px;right:60px;max-height:100px;max-width:200px}
+@media print{body{background:#fff;padding:0}body>*:not(#agree){display:none!important}#agree{position:static;background:#fff;padding:0;overflow:visible}#agree .bar{display:none}.page{transform:none!important;margin:0}.pgw{width:auto!important;height:auto!important;overflow:visible}@page{size:A4;margin:0}}
+.pwwrap{position:relative;display:block}.pwwrap input{padding-inline-start:48px}.eye{position:absolute;inset-inline-start:4px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;padding:6px 10px;opacity:.45;cursor:pointer;min-height:0}.eye.on{opacity:1}
+.wa{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border-radius:10px;padding:10px 16px;text-decoration:none;font-weight:600;margin:4px 0 0 8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <section class="login" id="loginV">
+    <img src="/icon-192.png" alt="">
+    <h1 style="margin:14px 0 4px">صندوق تواد</h1>
+    <p class="mut" id="lHint">ادخل برقم الهوية وكلمة السر</p>
+    <form id="loginF" class="card" style="text-align:start">
+      <label>رقم الهوية<input id="lNid" inputmode="numeric" autocomplete="username" maxlength="10" required></label>
+      <label>كلمة السر<input id="lPin" type="password" autocomplete="current-password" required></label>
+      <p class="err" id="lErr"></p>
+      <button class="pri" style="width:100%">دخول</button>
+    </form>
+    <form id="otpF" class="card hide" style="text-align:start">
+      <p class="mut" id="oInfo" style="margin-top:0">اكتب رقم هويتك وجوالك المسجلين في الصندوق، ويوصلك رمز مؤقت على إيميلك المسجل عندنا. بعدها تسوي كلمة السر حقتك.</p>
+      <label>رقم الهوية<input id="oNid" inputmode="numeric" autocomplete="username" maxlength="10" required></label>
+      <label id="oPhoneL">رقم الجوال<input id="oPhone" inputmode="tel" placeholder="05xxxxxxxx" maxlength="14" required></label>
+      <label id="oCodeL" class="hide">الرمز المؤقت<input id="oCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+      <p class="err" id="oErr"></p>
+      <button class="pri" style="width:100%" id="oBtn">إرسال الرمز المؤقت</button>
+      <button type="button" id="oBack" class="hide" style="width:100%;margin-top:8px">تغيير البيانات أو إعادة الإرسال</button>
+    </form>
+    <form id="pwF" class="card hide" style="text-align:start">
+      <p style="margin-top:0"><b>تفضل وغيّر كلمة السر حقتك</b><br><span class="mut">بعدها تدخل برقم هويتك وكلمة السر.</span></p>
+      <label>كلمة السر الجديدة (6 خانات أو أكثر)<input id="pw1" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label>أعد كتابتها<input id="pw2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <p class="err" id="pwErr"></p>
+      <button class="pri" style="width:100%">حفظ كلمة السر والدخول</button>
+    </form>
+    <p><a href="#" id="swLogin">أول مرة تدخل؟ أو نسيت كلمة السر؟</a></p>
+    <p class="mut">نسخة تجريبية · للاستفسار تواصل مع إدارة الصندوق</p>
+  </section>
+
+  <section id="mainV" class="hide">
+    <div class="top">
+      <div class="brand"><img src="/icon-192.png" alt=""><div><h1>صندوق تواد</h1><div class="mut" id="who"></div></div></div>
+      <button id="logout">خروج</button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+    <div id="view"></div>
+  </section>
+</div>
+<div id="agree" class="hide"></div>
+<div id="dlgHost"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+<script>
+{
+const SB_URL = 'https://hnsctbxkcdbwzbporwpu.supabase.co';
+const SB_KEY = 'sb_publishable_FaPjhi2rCV28avJKOq4qNQ_VRWZhN6k';
+const LOGO = 'data:image/png;base64,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';
+function addEyes(root){ (root || document).querySelectorAll('input[type=password]:not([data-eye])').forEach(i => { i.dataset.eye = 1;
+  const w = document.createElement('span'); w.className = 'pwwrap'; i.parentNode.insertBefore(w, i); w.appendChild(i);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'eye'; b.setAttribute('aria-label', 'إظهار كلمة السر'); b.textContent = '👁';
+  b.onclick = () => { const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.classList.toggle('on', show); b.setAttribute('aria-label', show ? 'إخفاء كلمة السر' : 'إظهار كلمة السر'); };
+  w.appendChild(b); }); }
+new MutationObserver(() => addEyes()).observe(document.documentElement, {childList: true, subtree: true});
+const FROM_LINK = /type=(magiclink|recovery|signup|invite)/.test(location.hash);
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const OPEN = ['queued','approved','docs_uploaded','verified','ready'];
+const ST = {queued:'في طابور الصرف', approved:'معتمد — بانتظار وثائقك', docs_uploaded:'الوثائق مرفوعة — بانتظار المراجعة', verified:'بانتظار الاعتماد الثاني', ready:'جاهز للصرف', disbursed:'مصروف', closed:'مغلق', rejected:'مرفوض', cancelled:'ملغي'};
+const KIND = {subscription:'اشتراك', fee:'رسوم', installment:'قسط', disbursement:'صرف قرض'};
+// ---------- حسابات البنوك: كل عضو يودع في بنك، وكل أدمن مسؤول عن بنوك (members.admin_banks) ----------
+const BANKS = {ahli:'الأهلي', riyad:'بنك الرياض', fransi:'الفرنسي', other:'بنك آخر'};
+const BANK_ORDER = Object.keys(BANKS);
+const SUB = 250;
+const LOAN_CAP = 100000;   // أعلى حد ائتماني لأي عضو
+const LOAN_MULT = 5;       // الحد = 5 أضعاف الاشتراكات المدفوعة
+const FEE_RATE = 0.001;    // رسوم القرض الاختيارية: 1 بالألف من مبلغ القرض
+const FEE_FROM_SUBS = 'رسوم قروض مخصومة من الاشتراكات';
+// الاشتراكات المتوقعة: 250 عن كل شهر من ديسمبر 2012 إلى الشهر المحدد (نفس قاعدة الإكسل)
+const expectedSubs = ym => { const [y, m] = String(ym).slice(0, 7).split('-').map(Number); return Math.max(0, (y - 2012) * 12 + m - 11) * SUB; };
+const nowYM = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
+const mLink = (id, name) => me && me.is_admin && id ? `<a href="#member-${id}">${esc(name)}</a>` : esc(name);
+const feeDueOf = m => +(m && m.fee_due) || 0;   // رسوم القروض بأثر رجعي: 1 بالألف من كل قرض سابق
+const OPEN_NOTE = 'رصيد افتتاحي';
+const ibanOk = v => { const s = String(v || '').replace(/\s/g, '').toUpperCase(); if(!/^SA\d{22}$/.test(s)) return false; const t = s.slice(4) + s.slice(0, 4); let r = 0; for(const c of t){ const d = isNaN(c) ? String(c.charCodeAt(0) - 55) : c; for(const x of d) r = (r * 10 + +x) % 97; } return r === 1; };
+const feeOf = a => Math.round((+a || 0) * FEE_RATE * 100) / 100;
+let myAvail = 0;
+// ---------- المستندات: الاتفاقيات والحوالات المجدولة وإشعارات الحوالة (حالي / سابق) ----------
+const DOC_KIND = {agreement:'اتفاقية القرض', standing_order:'الحوالة المجدولة', receipt:'إشعار حوالة القرض', payment:'إيصالات إيداع وسداد', settlement:'تصفية الانسحاب'};
+async function docsHtml(memberId){
+  const [{data: docs, error}, {data: loans}] = await Promise.all([
+    sb.from('member_docs').select('*').eq('member_id', memberId).order('doc_date', {ascending:false}),
+    sb.from('loans').select('id, status, agreement_path, standing_order_path, receipt_path, disbursed_at, created_at').eq('member_id', memberId)
+  ]);
+  if(error) return `<div class="card"><h2>المستندات</h2><p class="err">تعذّر تحميل المستندات: ${esc(errMsg(error))}</p></div>`;
+  const list = (docs||[]).map(d => ({kind:d.kind, title:d.title, date:d.doc_date, path:d.path, current:d.is_current}));
+  // مستندات القروض اللي انصرفت من المنصة نفسها
+  for(const l of (loans||[])){
+    const cur = l.status === 'disbursed', when = l.disbursed_at || l.created_at;
+    for(const [k, f] of [['agreement','agreement_path'],['standing_order','standing_order_path'],['receipt','receipt_path']]){
+      if(!l[f]) continue;
+      if(cur) list.forEach(x => { if(x.kind === k) x.current = false; });
+      list.push({kind:k, title:DOC_KIND[k] + ' — من المنصة', date:when, path:l[f], current:cur});
+    }
+  }
+  if(!list.length) return '';
+  const groups = Object.keys(DOC_KIND).map(k => [k, list.filter(x => x.kind === k).sort((a,b) => (b.current - a.current) || String(b.date).localeCompare(String(a.date)))]).filter(g => g[1].length);
+  return `<div class="card"><h2>المستندات</h2>${groups.map(([k, xs]) => `<h3>${DOC_KIND[k]}</h3><table class="stack"><tbody>${xs.map(x => `<tr${x.current ? ' style="background:var(--g2)"' : ''}><td>${x.current ? '<span class="chip">الحالي</span>' : '<span class="chip wait">سابق</span>'}</td><td>${esc(x.title || DOC_KIND[k])}</td><td class="n">${monthTxt(x.date)}</td><td class="n"><button type="button" data-doc="${esc(x.path)}" style="min-height:36px">عرض</button></td></tr>`).join('')}</tbody></table>`).join('')}</div>`;
+}
+function bindDocs(root){
+  root.querySelectorAll('[data-doc]').forEach(b => b.onclick = () => run(b, async () => {
+    const w = window.open('', '_blank'); const u = await signed(b.dataset.doc);
+    if(!u){ if(w) w.close(); throw new Error('الملف غير موجود'); }
+    if(w) w.location = u; else location.href = u; }));
+}
+const digits = v => String(v || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[^\d]/g, '');
+function myBanks(){ return me?.admin_banks || []; }
+function bankOwners(ms){ const o = {}; ms.filter(m => m.is_admin && m.admin_banks).forEach(m => m.admin_banks.forEach(b => o[b] = (o[b] ? o[b] + ' و' : '') + String(m.full_name).split(' ')[0])); return o; }
+function bankFilter(){ let f = 'mine'; try{ f = localStorage.getItem('tawad-bankF') || 'mine'; }catch(e){} if(f === 'mine' && !myBanks().length) f = 'all'; return f; }
+function setBankFilter(v){ try{ localStorage.setItem('tawad-bankF', v); }catch(e){} }
+function bankMatch(m, f){ return f === 'all' ? true : f === 'mine' ? myBanks().includes(m.bank) : f === 'none' ? !m.bank : m.bank === f; }
+function bankSort(a, b){ const i = x => x.bank ? BANK_ORDER.indexOf(x.bank) : 99; return i(a) - i(b) || (a.member_no ?? 1e9) - (b.member_no ?? 1e9); }
+function bankTitle(b, owners){ return b ? `حساب ${BANKS[b] || b}${owners[b] ? ' — ' + esc(owners[b]) : ''}` : 'بدون بنك محدد'; }
+function bankChips(ms, f, owners, done){
+  const opts = [];
+  if(myBanks().length) opts.push(['mine', 'حساباتي', myBanks().map(b => BANKS[b]).join(' + ')]);
+  BANK_ORDER.forEach(b => { if(ms.some(m => m.bank === b)) opts.push([b, BANKS[b], owners[b] || '']); });
+  if(ms.some(m => !m.bank)) opts.push(['none', 'بدون بنك', 'حدّد بنكه']);
+  opts.push(['all', 'الكل', 'كل البنوك']);
+  return `<div class="bankf" role="group" aria-label="فرز حسب البنك">` + opts.map(([k, l, sub]) => { const list = ms.filter(m => bankMatch(m, k));
+    return `<button type="button" data-bf="${k}" class="${f === k ? 'on' : ''}" aria-pressed="${f === k}"><span>${l}</span><small>${esc(sub)} · ${done ? list.filter(done).length + '/' : ''}${list.length}${done ? ' مسجل' : ' عضو'}</small></button>`; }).join('') + `</div>`;
+}
+const ymd = d => d ? new Date(d).toLocaleDateString('en-GB') : '';
+const monthTxt = d => { if(!d) return ''; const x = new Date(d); return MONTHS[x.getMonth()] + ' ' + x.getFullYear(); };
+let me = null, admins = {}, route = '';
+
+function toast(t){ const d = document.createElement('div'); d.className='toast'; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(), 3500); }
+function errMsg(e){ return (e && (e.message || e.error_description)) || 'حدث خطأ'; }
+async function run(btn, fn){ if(btn) btn.disabled = true; try{ await fn(); } catch(e){ toast(errMsg(e)); } finally { if(btn) btn.disabled = false; } }
+function dialog(title, bodyHtml, onOk, okText='تأكيد'){
+  $('dlgHost').innerHTML = `<div class="dlg"><form class="card" id="dlgF"><h2>${title}</h2>${bodyHtml}<div class="row" style="justify-content:flex-end;margin-top:8px"><button type="button" id="dlgNo">إلغاء</button><button class="pri" id="dlgOk">${okText}</button></div></form></div>`;
+  $('dlgNo').onclick = () => $('dlgHost').innerHTML = '';
+  $('dlgF').onsubmit = e => { e.preventDefault(); run($('dlgOk'), async () => { await onOk(new FormData($('dlgF'))); $('dlgHost').innerHTML=''; }); };
+}
+function schedule(l){
+  const rows = []; if(!l.total || !l.installment || !l.first_due) return rows;
+  const n = Math.ceil(l.total / l.installment), f = new Date(l.first_due);
+  for(let k=0;k<n;k++){ const d = new Date(f.getFullYear(), f.getMonth()+k, 1); rows.push({k:k+1, y:d.getFullYear(), m:MONTHS[d.getMonth()], v: k===n-1 ? l.total - l.installment*(n-1) : l.installment}); }
+  return rows;
+}
+async function signed(path){ if(!path) return null; const {data} = await sb.storage.from('loan-docs').createSignedUrl(path, 600); return data?.signedUrl || null; }
+async function upload(file, path){
+  if(!file) throw new Error('اختر الملف');
+  if(file.size > 10*1024*1024) throw new Error('حجم الملف أكبر من 10 ميجا');
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const full = `${path}-${Date.now()}.${ext}`;
+  const {error} = await sb.storage.from('loan-docs').upload(full, file, {contentType: file.type || undefined});
+  if(error) throw error; return full;
+}
+
+// ---------- الدخول ----------
+$('loginF').onsubmit = async e => {
+  e.preventDefault(); $('lErr').textContent = '';
+  const nid = $('lNid').value.replace(/\D/g, ''), pw = $('lPin').value;
+  if(!/^\d{10}$/.test(nid)){ $('lErr').textContent = 'رقم الهوية 10 أرقام'; return; }
+  const btn = e.submitter; btn.disabled = true;
+  try{
+    const {data: d, error} = await sb.rpc('tw_pw_login', {p_nid: nid, p_password: pw});
+    if(error) throw new Error(/function|schema cache/.test(error.message) ? 'الدخول مو مفعّل لين الحين، تواصل مع الإدارة' : errMsg(error));
+    if(!d || d.error) throw new Error(LOGIN_MSG[d && d.error] || 'تعذّر الدخول');
+    const {error: e2} = await sb.auth.signInWithPassword({email: d.email, password: pw}); if(e2) throw new Error(LOGIN_MSG.bad);
+  } catch(err){ $('lErr').textContent = errMsg(err); }
+  btn.disabled = false;
+};
+const LOGIN_MSG = {bad:'رقم الهوية أو كلمة السر غير صحيحة', too_many:'محاولات كثيرة، حاول بعد 15 دقيقة',
+  no_password:'ما سويت كلمة سر لين الحين. اضغط "أول مرة تدخل؟" تحت', not_found:'رقم الهوية غير مسجل لعضو نشط، تواصل مع الإدارة'};
+let pwPending = FROM_LINK;
+function loginMode(m){ ['loginF','otpF','pwF'].forEach(x => $(x).classList.toggle('hide', x !== m)); $('swLogin').classList.toggle('hide', m === 'pwF');
+  $('swLogin').textContent = m === 'loginF' ? 'أول مرة تدخل؟ أو نسيت كلمة السر؟' : 'رجوع للدخول بكلمة السر';
+  $('lHint').textContent = m === 'loginF' ? 'ادخل برقم الهوية وكلمة السر' : m === 'otpF' ? 'الدخول برمز مؤقت على الإيميل' : 'كلمة السر'; }
+$('pwF').onsubmit = async e => {
+  e.preventDefault(); $('pwErr').textContent = ''; const pw = $('pw1').value;
+  if(pw.length < 6){ $('pwErr').textContent = 'كلمة السر 6 خانات أو أكثر'; return; }
+  if(pw !== $('pw2').value){ $('pwErr').textContent = 'الكلمتين مو متطابقتين'; return; }
+  const btn = e.submitter; btn.disabled = true;
+  const {error} = await sb.auth.updateUser({password: pw});
+  btn.disabled = false;
+  if(error){ $('pwErr').textContent = /same|different/i.test(error.message) ? 'اختر كلمة سر غير القديمة' : errMsg(error); return; }
+  pwPending = false; toast('انحفظت كلمة السر'); const {data: {session}} = await sb.auth.getSession(); boot(session);
+};
+// ---------- الدخول بالواتساب ----------
+const OTP_MSG = {not_found:'البيانات غير مطابقة لأي عضو مسجل، تواصل مع إدارة الصندوق', too_many:'محاولات كثيرة، حاول بعد 15 دقيقة', whatsapp_failed:'تعذّر إرسال رسالة الواتساب، حاول لاحقاً', bad_code:'الرمز غير صحيح', expired:'انتهت صلاحية الرمز، اطلب رمزاً جديداً', locked:'تم قفل الرمز بعد محاولات خاطئة، اطلب رمزاً جديداً', bad_id:'رقم الهوية 10 أرقام', server:'خطأ في الخادم، حاول لاحقاً'};
+let otpStage = 'send', otpEmail = '';
+const EMAIL_MSG = {bad_id:'رقم الهوية 10 أرقام', too_many:'محاولات كثيرة، حاول بعد 15 دقيقة', not_found:'رقم الهوية أو الجوال ما يطابق بيانات عضو نشط في الصندوق. تأكد منهم أو تواصل مع الإدارة',
+  no_email:'ما عندنا إيميلك مسجل، تواصل مع الإدارة عشان تضيفه', email_taken:'إيميلك مربوط بعضو ثاني، تواصل مع الإدارة'};
+async function otpCall(body){
+  const r = await fetch(SB_URL + '/functions/v1/otp', {method:'POST', headers:{'Content-Type':'application/json', apikey: SB_KEY}, body: JSON.stringify(body)});
+  let d = {}; try { d = await r.json(); } catch(e) {}
+  if(!r.ok) throw new Error((OTP_MSG[d.error] || 'تعذّر الاتصال') + (d.error==='bad_code' && d.left >= 0 ? ` — باقي ${d.left} محاولات` : ''));
+  return d;
+}
+function otpStageSet(st){
+  otpStage = st;
+  $('oCodeL').classList.toggle('hide', st==='send'); $('oBack').classList.toggle('hide', st==='send');
+  $('oPhoneL').classList.toggle('hide', st!=='send'); $('oNid').readOnly = st!=='send';
+  $('oBtn').textContent = st==='send' ? 'إرسال الرمز المؤقت' : 'تأكيد الرمز';
+  if(st==='verify') setTimeout(()=>$('oCode').focus(), 50);
+}
+$('otpF').onsubmit = async e => {
+  e.preventDefault(); $('oErr').textContent = ''; const btn = $('oBtn'); btn.disabled = true;
+  const nid = $('oNid').value.trim();
+  try{
+    if(!/^\d{10}$/.test(nid)) throw new Error(OTP_MSG.bad_id);
+    if(otpStage==='send'){
+      const {data: d, error} = await sb.rpc('tw_email_login', {p_nid: nid, p_phone: $('oPhone').value});
+      if(error) throw new Error(/function|schema cache/.test(error.message) ? 'الدخول بالإيميل مو مفعّل لين الحين، تواصل مع الإدارة' : errMsg(error));
+      if(!d || d.error) throw new Error(EMAIL_MSG[d && d.error] || 'تعذّر الإرسال');
+      const {error: e2} = await sb.auth.signInWithOtp({email: d.email, options: {shouldCreateUser: false, emailRedirectTo: location.origin + '/'}});
+      if(e2) throw new Error(/rate|seconds/i.test(e2.message) ? 'انتظر دقيقة وحاول مرة ثانية' : errMsg(e2));
+      otpEmail = d.email;
+      $('oInfo').innerHTML = `أرسلنا رسالة على إيميلك المسجل عندنا:<br><b dir="ltr" style="display:inline-block">${esc(d.masked)}</b><br>افتح الرسالة واضغط الرابط (<b>Sign in</b>) من نفس الجوال، أو إذا فيها رمز اكتبه تحت. إذا ما لقيتها شيك على البريد غير الهام (Spam).`; otpStageSet('verify');
+    } else {
+      pwPending = true;
+      const {error} = await sb.auth.verifyOtp({email: otpEmail, token: $('oCode').value.trim(), type: 'email'});
+      if(error) pwPending = false;
+      if(error) throw new Error(/expired|invalid/i.test(error.message) ? 'الرمز غير صحيح أو انتهت صلاحيته' : errMsg(error));
+    }
+  } catch(err){ $('oErr').textContent = errMsg(err); }
+  btn.disabled = false;
+};
+$('oBack').onclick = () => { otpStageSet('send'); $('oCode').value=''; $('oErr').textContent=''; $('oInfo').textContent = 'اكتب رقم هويتك وجوالك المسجلين في الصندوق، ويوصلك رمز مؤقت على إيميلك المسجل عندنا. بعدها تسوي كلمة السر حقتك.'; };
+$('swLogin').onclick = e => { e.preventDefault(); loginMode($('loginF').classList.contains('hide') ? 'loginF' : 'otpF'); if(!$('otpF').classList.contains('hide')){ otpStageSet('send'); $('oNid').value = $('oNid').value || $('lNid').value; } };
+$('logout').onclick = async () => { await sb.auth.signOut(); };
+sb.auth.onAuthStateChange((ev, session) => { if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(ev)) setTimeout(() => boot(session), 0); });
+
+async function boot(session){
+  if(!session){ me = null; $('loginV').classList.remove('hide'); $('mainV').classList.add('hide'); if(!$('pwF').classList.contains('hide')) loginMode('loginF'); return; }
+  if(pwPending){ $('loginV').classList.remove('hide'); $('mainV').classList.add('hide'); loginMode('pwF'); setTimeout(() => $('pw1').focus(), 50); return; }
+  const {data} = await sb.from('members').select('*').eq('user_id', session.user.id).maybeSingle();
+  if(!data){ $('lErr').textContent = $('oErr').textContent = 'حسابك غير مرتبط بعضو نشط، تواصل مع الإدارة'; await sb.auth.signOut(); return; }
+  me = data;
+  const {data: ad} = await sb.rpc('admin_names'); admins = {}; (ad||[]).forEach(a => admins[a.id] = a);
+  $('who').textContent = me.full_name + (me.is_super ? ' · سوبر أدمن' : me.is_admin ? ' · أدمن' : '');
+  $('loginV').classList.add('hide'); $('mainV').classList.remove('hide');
+  render();
+}
+window.addEventListener('hashchange', () => me && render());
+
+function render(){
+  const tabs = [['me','كشفي']];
+  if(me.is_admin) tabs.push(['requests','الطلبات'],['members','الأعضاء'],['tx','الحركات'],['recon','المطابقة'],['report','التقرير'],['fees','بند الرسوم']);
+  tabs.push(['settings','الإعدادات']);
+  route = (location.hash.slice(1) || 'me').split('-')[0];
+  if(!tabs.some(t => t[0]===route) && route !== 'loan' && !(route === 'member' && me.is_admin)) route = 'me';
+  $('tabs').innerHTML = tabs.map(([k,t]) => `<a href="#${k}" class="${route===k?'on':''}">${t}</a>`).join('');
+  $('view').innerHTML = '<p class="mut">جارٍ التحميل…</p>';
+  ({me:viewMe, requests:viewRequests, members:viewMembers, tx:viewTx, recon:viewRecon, report:viewReport, fees:viewFees, settings:viewSettings, loan:viewLoanRoute, member:viewMemberRoute}[route])().catch(e => $('view').innerHTML = `<p class="err">${esc(errMsg(e))}</p>`);
+}
+
+// ---------- العضو ----------
+async function viewMe(){ return memberPage(me, true); }
+async function viewMemberRoute(){
+  const id = +location.hash.split('-')[1];
+  const {data: m} = await sb.from('members').select('*').eq('id', id).maybeSingle();
+  if(!m){ $('view').innerHTML = '<p class="mut">العضو غير موجود.</p>'; return; }
+  return memberPage(m, false);
+}
+async function memberPage(m, self){
+  const [{data: tx}, {data: loans}, {data: q}, {data: hist}] = await Promise.all([
+    sb.from('transactions').select('*').eq('member_id', m.id).order('period', {ascending:false}),
+    sb.from('loans').select('*').eq('member_id', m.id).order('created_at', {ascending:false}),
+    self ? sb.rpc('my_queue') : Promise.resolve({data: []}),
+    sb.from('loan_history').select('*').eq('member_id', m.id).order('loan_date')
+  ]);
+  const subs = (tx||[]).filter(t => t.kind==='subscription').reduce((s,t) => s + +t.amount, 0);
+  const paidOf = id => (tx||[]).filter(t => t.kind==='installment' && t.loan_id===id).reduce((s,t)=>s + +t.amount, 0);
+  const active = (loans||[]).find(l => l.status==='disbursed');
+  const bal = active ? active.total - paidOf(active.id) : 0;
+  const open = (loans||[]).find(l => OPEN.includes(l.status));
+  const limit = Math.min(subs * LOAN_MULT, LOAN_CAP), avail = Math.max(0, limit - bal); if(self) myAvail = avail;
+  const my = self ? 'ي' : '';
+  let h = self ? '' : `<p><a href="#members">← الأعضاء</a></p><div class="card"><div class="row sp"><h2 style="margin:0">${esc(m.full_name)}</h2><span class="chip">${m.member_no ?? ''}${m.bank ? ' · ' + BANKS[m.bank] : ''}${m.status && m.status !== 'active' ? ' · ' + ({withdrawn:'منسحب', deceased:'متوفى', suspended:'موقوف / قانوني'}[m.status] || m.status) : ''}</span></div><p class="mut" style="margin:8px 0 0;font-size:13px">الدخول: ${m.user_id ? 'مفعّل' : 'ما سجّل لين الحين'}${m.email ? ' · الإيميل: <bdi dir="ltr">' + esc(m.email) + '</bdi>' : ' · <b style="color:#b42318">ما له إيميل، ما يقدر يدخل</b>'}</p></div>`;
+  h += `<div class="kpis">
+    <div class="kpi"><span class="mut">إجمالي اشتراكات${my}</span><b>${fmt(subs)}</b></div>
+    <div class="kpi key"><span class="mut">الحد الائتماني (${LOAN_MULT} أضعاف المدفوع، حده الأعلى ${fmt(LOAN_CAP)})</span><b>${fmt(limit)}</b></div>
+    <div class="kpi"><span class="mut">رصيد القرض الحالي</span><b>${fmt(bal)}</b></div>
+    <div class="kpi"><span class="mut">المتاح ${self ? 'لي' : 'له'}</span><b>${fmt(avail)}</b></div></div>`;
+  const feeTx = (tx||[]).filter(t => t.kind==='fee' && !t.loan_id);
+  const fromSubs = feeTx.filter(t => (t.note || '').startsWith(FEE_FROM_SUBS)).reduce((s,t) => s + +t.amount, 0);
+  const myFee = feeTx.reduce((s,t) => s + +t.amount, 0), myDue = feeDueOf(m);
+  if(myDue > 0 || myFee > 0) h += `<div class="rules">رسوم القروض (1 بالألف من كل قرض): <b>${fmt(myDue)}</b> ريال · دفعتها رسوماً <b>${fmt(myFee - fromSubs)}</b>${fromSubs ? ` · خُصم من الاشتراكات <b>${fmt(fromSubs)}</b>` : ''} ${myFee >= myDue - 0.001 ? '<span class="chip">مسددة</span>' : `<span class="chip bad">متبقي ${fmt(myDue - myFee)}</span>`}</div>`;
+  const expSubs = expectedSubs(nowYM()), diff = subs - expSubs;
+  if(!m.status || m.status === 'active') h += `<div class="rules">الاشتراكات حتى ${monthTxt(nowYM() + '-01')}: المتوقع <b>${fmt(expSubs)}</b> · المدفوع <b>${fmt(subs)}</b> ${Math.abs(diff) < 0.01 ? '<span class="chip">منتظم</span>' : diff > 0 ? `<span class="chip">مقدم ${fmt(diff)}</span>` : `<span class="chip bad">متعثر ${fmt(-diff)}</span>`}</div>`;
+  if(self) h += await claimCard(m, active);
+  if(self) h += open ? await openLoanCard(open, (q||[])[0]) : requestCard();
+  else if(open) h += `<div class="card highlight">عنده طلب قرض قيد الإجراء: <a href="#loan-${open.id}">${fmt(open.amount)} ريال — ${ST[open.status]}</a></div>`;
+  if((hist||[]).length){ const tot = hist.reduce((s,x) => s + +x.amount, 0);
+    h += `<div class="card"><h2>سجل القروض ورسومها</h2><p class="mut">الرسوم = 1 بالألف من كل قرض.</p><table class="stack"><thead><tr><th>الشهر</th><th class="n">مبلغ القرض</th><th class="n">الرسوم</th></tr></thead><tbody>${hist.map(x => `<tr><td>${monthTxt(x.loan_date)}</td><td class="n">${fmt(x.amount)}</td><td class="n">${fmt(Math.round(x.amount) / 1000)}</td></tr>`).join('')}<tr><td><b>المجموع (${hist.length})</b></td><td class="n"><b>${fmt(tot)}</b></td><td class="n"><b>${fmt(Math.round(tot / 10) / 100)}</b></td></tr></tbody></table></div>`; }
+  const past = (loans||[]).filter(l => !OPEN.includes(l.status));
+  if(past.length) h += `<div class="card"><h2>القروض في المنصة</h2><table class="stack"><thead><tr><th>القرض</th><th class="n">الإجمالي</th><th class="n">المسدد</th><th>الحالة</th><th></th></tr></thead><tbody>${past.map(l => `<tr><td>${ymd(l.disbursed_at || l.created_at)}</td><td class="n">${fmt(l.total || l.amount)}</td><td class="n">${fmt(paidOf(l.id))}</td><td><span class="chip">${ST[l.status]}</span></td><td><a href="#loan-${l.id}">التفاصيل</a></td></tr>`).join('')}</tbody></table></div>`;
+  h += `<div class="card"><h2>كشف الحساب</h2>${(tx||[]).length ? `<table class="stack"><thead><tr><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${tx.map(t => `<tr><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا توجد حركات بعد.</p>'}</div>`;
+  h += `<div class="card"><h2>${self ? 'بياناتي' : 'بيانات العضو'}</h2><table><tbody>
+    <tr><td>رقم العضوية</td><td>${m.member_no ?? '—'}</td></tr><tr><td>رقم الهوية</td><td>${esc(m.national_id || '—')}</td></tr>
+    <tr><td>الجوال</td><td dir="ltr" style="text-align:start">${esc(m.phone || '—')}</td></tr><tr><td>البريد</td><td>${esc(m.email || '—')}</td></tr>
+    <tr><td>الآيبان</td><td dir="ltr" style="text-align:start">${esc(m.iban || '—')}</td></tr><tr><td>بنكي</td><td>${esc(m.own_bank || '—')}</td></tr>
+    <tr><td>يودع في حساب الصندوق</td><td>${m.bank ? BANKS[m.bank] : '—'}</td></tr></tbody></table>
+    ${self ? '<div id="waBox"><p class="mut">إذا فيه معلومة غلط أو ناقصة، راسل الإدارة:</p></div>' : `<button type="button" id="mEdit">تعديل البيانات</button>`}</div>`;
+  h += await docsHtml(m.id);
+  $('view').innerHTML = h;
+  if(self){ bindMe(open); bindClaim(m, active); } bindDocs($('view'));
+  if(self && $('waBox')){ const {data: ac} = await sb.rpc('tw_admin_contacts'); const L = (ac || []).filter(a => a.phone);
+    const mine = L.filter(a => (a.admin_banks || []).includes(m.bank)), use = mine.length ? mine : L.filter(a => a.is_super);
+    const msg = encodeURIComponent(`السلام عليكم، معك ${m.full_name} (عضوية ${m.member_no ?? ''}) من صندوق تواد. عندي ملاحظة على بياناتي: `);
+    const wa = ph => { let d = String(ph).replace(/\D/g, ''); if(d.startsWith('05')) d = '966' + d.slice(1); else if(d.startsWith('5') && d.length === 9) d = '966' + d; return d; };
+    if(use.length) $('waBox').insertAdjacentHTML('beforeend', use.map(a => `<a class="wa" target="_blank" rel="noopener" href="https://wa.me/${wa(a.phone)}?text=${msg}">واتساب ${esc(String(a.full_name).split(' ')[0])}</a>`).join('')); }
+  if($('mEdit')) $('mEdit').onclick = () => editMember(m, () => render());
+}
+const RULES = `<div class="rules"><b>آلية ترتيب الصرف</b> — تُصرف القروض حسب الأولوية التالية، ولا تتغير لأي اعتبار:
+<ol><li>من لم يسبق له الاقتراض من الصندوق.</li><li>الأقل عدداً في القروض المصروفة له سابقاً.</li><li>من ليس عليه قرض قائم.</li><li>الأكثر انتظاماً في سداد قروضه السابقة.</li><li>الأسبق في تقديم الطلب.</li></ol>
+إذا لم تكفِ السيولة لصاحب الدور فلا يُتجاوز إلى من بعده، ويُخيَّر صاحب الدور بين صرف المتاح الآن واستكمال الباقي لاحقاً، أو الانتظار حتى يكتمل مبلغه.</div>
+<div class="rules"><b>شروط الصرف</b><ul><li>توقيع اتفاقية القرض الحسن ورفعها في المكان المخصص.</li><li>جدولة السداد مع البنك (حوالة مجدولة) بنفس مبالغ وتواريخ الأقساط، ورفع صورتها.</li><li>الالتزام بعدم تغيير الحوالة المجدولة أو إلغائها.</li></ul></div>`;
+function requestCard(){
+  return `<div class="card"><h2>طلب قرض</h2>${RULES}
+  <form id="reqF"><label>المبلغ المطلوب (ريال)<input name="amount" type="number" min="1000" step="500" required></label>
+  <label>ملاحظة (اختياري)<input name="note" maxlength="200"></label>
+  <label style="display:flex;gap:10px;align-items:center;color:var(--ink)"><input type="checkbox" required style="width:22px;min-height:22px;margin:0"> اطلعت على آلية الترتيب وأوافق على الشروط</label>
+  <button class="pri">تقديم الطلب</button></form></div>`;
+}
+async function openLoanCard(l, q){
+  const order = ['queued','approved','docs_uploaded','verified','ready'];
+  const i = order.indexOf(l.status);
+  const steps = ['استلام الطلب وترتيبه','اعتماد القرض وجدولته','رفع الاتفاقية والحوالة المجدولة','مراجعة الوثائق','الاعتماد الثاني','الصرف'];
+  let h = `<div class="card highlight"><div class="row sp"><h2>طلبي الحالي</h2><span class="chip wait">${ST[l.status]}</span></div>
+    <p>المبلغ المطلوب: <b>${fmt(l.amount)}</b> ريال · تاريخ الطلب ${ymd(l.created_at)}</p>`;
+  if(l.status==='queued' && q) h += `<div class="row" style="gap:24px;margin:8px 0"><div><div class="mut">ترتيبك الحالي</div><div class="big">${q.pos}</div></div><div><div class="mut">عدد الطلبات قبلك</div><div class="big">${q.ahead}</div></div></div><p class="mut">قد يتغير ترتيبك إذا تقدّم عضو أولويته أعلى حسب آلية الترتيب.</p><button class="warn" id="cancelReq">إلغاء الطلب</button>`;
+  if(l.status==='approved') h += `<div class="rules">تم اعتماد قرضك بإجمالي <b>${fmt(l.total)}</b> ريال، قسط شهري <b>${fmt(l.installment)}</b> يبدأ ${monthTxt(l.first_due)}.<br>١) نزّل الاتفاقية واطبعها ووقّعها. ٢) أنشئ حوالة مجدولة من بنكك بنفس الجدول. ٣) ارفع الاثنين هنا.</div>
+    <button id="showAgree">عرض الاتفاقية للطباعة</button>
+    <form id="docsF" style="margin-top:12px"><label>الاتفاقية موقّعة (صورة أو PDF)<input type="file" name="a" accept="image/*,application/pdf" required></label>
+    <label>صورة الحوالة المجدولة<input type="file" name="s" accept="image/*,application/pdf" required></label>
+    <button class="pri">رفع الوثائق</button></form>`;
+  h += `<ul class="steps">${steps.map((s,k) => `<li class="${k<=i?'done':k===i+1?'now':''}">${k<=i?'✓ ':''}${s}</li>`).join('')}</ul>`;
+  if(i >= 1) h += `<p style="margin-top:10px"><a href="#loan-${l.id}">تفاصيل القرض والجدول</a></p>`;
+  return h + '</div>';
+}
+function bindMe(open){
+  const f = $('reqF');
+  if(f) f.onsubmit = e => { e.preventDefault(); const d = new FormData(f); run(e.submitter, async () => {
+    if(+d.get('amount') > myAvail) throw new Error(`المبلغ أكبر من المتاح لك (${fmt(myAvail)} ريال)`);
+    const {error} = await sb.rpc('request_loan', {p_amount: +d.get('amount'), p_note: d.get('note') || null}); if(error) throw error;
+    toast('تم استلام طلبك'); render(); }); };
+  if($('cancelReq')) $('cancelReq').onclick = e => dialog('إلغاء الطلب', '<p>متأكد من إلغاء طلبك؟ ستفقد ترتيبك في الطابور.</p>', async () => {
+    const {error} = await sb.rpc('cancel_my_request', {p_loan: open.id}); if(error) throw error; render(); }, 'إلغاء الطلب');
+  if($('showAgree')) $('showAgree').onclick = () => showAgreement(open, me);
+  const df = $('docsF');
+  if(df) df.onsubmit = e => { e.preventDefault(); const d = new FormData(df); run(e.submitter, async () => {
+    const base = `${me.id}/${open.id}/`;
+    const a = await upload(d.get('a'), base + 'agreement'); const s = await upload(d.get('s'), base + 'standing-order');
+    const {error} = await sb.rpc('submit_docs', {p_loan: open.id, p_agreement: a, p_standing_order: s}); if(error) throw error;
+    toast('تم رفع الوثائق، وصل إشعار للإدارة'); render(); }); };
+}
+
+// ---------- صفحة القرض ----------
+async function viewLoanRoute(){
+  const id = +location.hash.split('-')[1];
+  const {data: l} = await sb.from('loans').select('*').eq('id', id).maybeSingle();
+  if(!l){ $('view').innerHTML = '<p class="mut">القرض غير موجود.</p>'; return; }
+  const {data: m} = await sb.from('members').select('*').eq('id', l.member_id).maybeSingle();
+  const {data: tx} = await sb.from('transactions').select('*').eq('loan_id', id).eq('kind','installment');
+  const paid = (tx||[]).reduce((s,t)=>s + +t.amount, 0);
+  const rows = schedule(l);
+  const name = i => i ? esc(admins[i]?.full_name || '—') : '';
+  const log = [['اعتماد وجدولة', l.approved_by, l.approved_at], ['رفع الوثائق', null, l.docs_at], ['مراجعة الوثائق', l.verified_by, l.verified_at], ['الاعتماد الثاني', l.released_by, l.released_at], ['الصرف', l.disbursed_by, l.disbursed_at]].filter(x => x[2]);
+  const [ua, us, ur] = await Promise.all([signed(l.agreement_path), signed(l.standing_order_path), signed(l.receipt_path)]);
+  const doc = (u, t) => u ? `<a class="btn" href="${u}" target="_blank" rel="noopener">${t}</a>` : `<span class="btn" style="opacity:.45">${t}</span>`;
+  $('view').innerHTML = `<p><a href="#${me.is_admin && m?.id !== me.id ? 'requests' : 'me'}">← رجوع</a></p>
+  <div class="card"><div class="row sp"><h2>قرض ${mLink(m?.id, m?.full_name || '')}</h2><span class="chip">${ST[l.status]}</span></div>
+  <div class="kpis" style="margin:10px 0"><div class="kpi"><span class="mut">إجمالي القرض</span><b>${fmt(l.total || l.amount)}</b></div><div class="kpi"><span class="mut">المسدد</span><b>${fmt(paid)}</b></div><div class="kpi key"><span class="mut">المتبقي</span><b>${fmt((l.total||0) - paid)}</b></div></div>
+  ${l.prev_balance > 0 ? `<p class="mut">يشمل المتبقي من القرض السابق ${fmt(l.prev_balance)} + قرض إضافي ${fmt(l.amount)}</p>` : ''}
+  <div class="rules">رسوم القرض: ${l.fee_enabled ? `<b>${fmt(l.fee)} ريال</b> (1 بالألف من ${fmt(l.amount)})` : '<b>غير مستحقة</b>'}
+  ${me.is_admin && !['disbursed','closed','rejected'].includes(l.status) ? `<label style="display:flex;gap:10px;align-items:center;margin:8px 0 0;color:var(--ink)"><input type="checkbox" id="feeChk" ${l.fee_enabled ? 'checked' : ''} style="width:22px;min-height:22px;margin:0"> تفعيل الرسوم (${fmt(feeOf(l.amount))} ريال)</label>` : ''}</div>
+  <h3>الوثائق</h3><div class="row">${doc(ua,'الاتفاقية الموقّعة')}${doc(us,'الحوالة المجدولة')}${doc(ur,'إشعار حوالة الصرف')}${l.installment ? '<button id="agreeBtn">نسخة الاتفاقية</button>' : ''}</div>
+  <h3>سجل الموافقات</h3>${log.length ? `<table><tbody>${log.map(x => `<tr><td>${x[0]}</td><td>${name(x[1])}</td><td class="n">${new Date(x[2]).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'})}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد بعد.</p>'}
+  <h3>جدول الأقساط</h3>${rows.length ? `<table class="stack"><thead><tr><th>#</th><th>الشهر</th><th class="n">القسط</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.k}</td><td>${r.m} ${r.y}</td><td class="n">${fmt(r.v)}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">يُحدد بعد الاعتماد.</p>'}</div>`;
+  if($('feeChk')) $('feeChk').onchange = e => run(null, async () => { const {error} = await sb.rpc('admin_set_fee', {p_loan: l.id, p_enabled: e.target.checked}); if(error){ e.target.checked = !e.target.checked; throw error; } toast(e.target.checked ? 'تم تفعيل الرسوم' : 'تم إلغاء الرسوم'); render(); });
+  if($('agreeBtn')) $('agreeBtn').onclick = () => showAgreement(l, m);
+}
+
+// ---------- الاتفاقية ----------
+const ones=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'],teens=['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'],tens=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],hund=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+const u1000 = n => { const p=[], h=Math.floor(n/100), r=n%100; if(h) p.push(hund[h]); if(r){ if(r<10) p.push(ones[r]); else if(r<20) p.push(teens[r-10]); else p.push((r%10? ones[r%10]+' و':'')+tens[Math.floor(r/10)]); } return p.join(' و'); };
+const words = n => { n=Math.floor(n); if(!n) return 'صفر'; const p=[], th=Math.floor(n/1000)%1000, mil=Math.floor(n/1e6), r=n%1000; if(mil) p.push(mil===1?'مليون':u1000(mil)+' مليون'); if(th) p.push(th===1?'ألف':th===2?'ألفان':th<=10?u1000(th)+' آلاف':u1000(th)+' ألف'); if(r) p.push(u1000(r)); return p.join(' و'); };
+async function showAgreement(l, m){
+  const ap = admins[l.approved_by] || {};
+  const sig = await signed(ap.signature_path);
+  const rows = schedule(l), half = Math.ceil(rows.length/2), last = rows[rows.length-1];
+  const tbl = rs => `<table class="sched"><thead><tr><th>رقم القسط</th><th>العام</th><th>الشهر</th><th>المبلغ</th></tr></thead><tbody>${rs.map(r => `<tr><td>${r.k}</td><td>${r.y}</td><td>${r.m}</td><td>${fmt(r.v)}</td></tr>`).join('')}</tbody></table>`;
+  const d = new Date(l.approved_at || Date.now());
+  const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  $('agree').innerHTML = `<div class="bar"><button class="pri" id="agPrint">طباعة / حفظ PDF</button><button id="agClose">إغلاق</button></div>
+  <div class="pgw" id="agW"><section class="page" id="agPage"><div class="frame">
+    <img class="logo" src="${LOGO}" alt="جمعية تواد التعاونية"><div class="ttl">عقد قرض حسن</div>
+    <p>بعون الله وتوفيقه تم في هذا اليوم <i>${days[d.getDay()]} <span dir="ltr">${d.toLocaleDateString('en-GB')}</span>م</i> الاتفاق بين الأطراف الموقعة أدناه على عقد اتفاق قرض حسن حسب البنود والالتزامات الواردة في هذا العقد.</p>
+    <p><b>الطرف الأول:</b> <i>${esc(m.full_name)}</i>، يحمل السجل المدني رقم: ${esc(m.national_id)} يشار إليه هنا بـ "المقترض"</p>
+    <p><b>الطرف الثاني:</b> جمعية تواد ممثلة في أمين الصندوق الموقع أدناه يشار إليه هنا بـ "الجمعية" أو "الصندوق"</p>
+    <h4>الالتزامات:</h4><ul>
+      <li>يلتزم المقترض بجدولة سداد قرضه من خلال حسابه البنكي (حوالة مجدولة) حسب الجدول أدناه وإثبات ذلك بأي وسيلة متاحة</li>
+      <li>يتعهد المقترض بإشعار الصندوق عن أي تغير في الحساب البنكي يترتب عليه إيقاف سداد الأقساط بواسطة الحوالة المجدولة</li>
+      <li>يتحمل المقترض دفع أي رسوم مترتبة عن عملية التحويل الإلكتروني للقرض من حساب الصندوق إلى حسابه</li></ul>
+    <h4>تفاصيل القرض:</h4><ul>
+      ${l.prev_balance > 0 ? `<li>المتبقي من القرض السابق: ${fmt(l.prev_balance)}</li><li>مبلغ القرض الإضافي: ${fmt(l.amount)}</li>` : ''}
+      <li><b>إجمالي مبلغ القرض${l.prev_balance > 0 ? ' الجديد' : ''}: ${fmt(l.total)}</b> ريال (${words(l.total)} ريال سعودي فقط لا غير)</li>
+      <li>عدد الأقساط: ${rows.length} · القسط الشهري: ${fmt(l.installment)}${last && last.v !== +l.installment ? ' · القسط الأخير: ' + fmt(last.v) : ''}</li>
+      ${l.fee_enabled && +l.fee > 0 ? `<li>رسوم القرض (1 بالألف): ${fmt(l.fee)} ريال تُدفع للصندوق</li>` : ''}</ul>
+    <h4>جدول السداد:</h4>
+    <div class="halves">${tbl(rows.slice(0,half))}${rows.length > half ? tbl(rows.slice(half)) : '<div></div>'}</div>
+    <div class="signs"><div>الطرف الأول: <i>${esc(m.full_name)}</i><div class="dots"></div><div class="s"></div></div>
+      <div>الطرف الثاني: ممثل الصندوق/ ${esc(ap.full_name || '')}<div class="dots"></div><div class="s">${sig ? `<img src="${sig}" alt="">` : ''}</div></div></div>
+  </div></section></div>`;
+  $('agree').classList.remove('hide');
+  const fr = $('agPage').querySelector('.frame'); let fs = 12.5;
+  while(fr.scrollHeight > fr.clientHeight + 1 && fs > 8){ fs -= .5; $('agPage').querySelectorAll('.sched').forEach(t => { t.style.fontSize = fs+'px'; t.style.lineHeight = '1.12'; }); }
+  const sc = Math.min(1, (innerWidth - 24) / 794); $('agPage').style.transform = `scale(${sc})`; $('agW').style.width = 794*sc + 'px'; $('agW').style.height = 1123*sc + 'px';
+  $('agPrint').onclick = () => window.print();
+  $('agClose').onclick = () => $('agree').classList.add('hide');
+}
+
+// ---------- الأدمن: الطلبات ----------
+async function viewRequests(){
+  const [{data: q, error: qe}, {data: inprog}, {data: done}] = await Promise.all([
+    sb.rpc('admin_queue'),
+    sb.from('loans').select('*, members!loans_member_id_fkey(full_name, member_no)').in('status', ['approved','docs_uploaded','verified','ready']).order('created_at'),
+    sb.from('loans').select('*, members!loans_member_id_fkey(full_name)').eq('status','disbursed').order('disbursed_at', {ascending:false}).limit(10)
+  ]);
+  if(qe) throw qe;
+  const waitingMe = (inprog||[]).filter(l => l.status==='docs_uploaded' || (l.status==='verified' && l.verified_by !== me.id) || l.status==='ready');
+  let h = waitingMe.length ? `<div class="card highlight"><b>بانتظار إجراء منك: ${waitingMe.length}</b></div>` : '';
+  h += `<div class="card"><h2>طابور الصرف</h2>${(q||[]).length ? `<table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المبلغ</th><th>قروض سابقة</th><th>قرض قائم</th><th>أقساط متأخرة</th><th>تاريخ الطلب</th><th></th></tr></thead><tbody>${q.map(r => `<tr><td><b>${r.pos}</b></td><td>${(r.member_id ? mLink(r.member_id, r.full_name) : esc(r.full_name))}</td><td class="n">${fmt(r.amount)}</td><td>${r.prior_loans}</td><td>${r.has_active ? 'نعم (' + fmt(r.active_balance) + ')' : 'لا'}</td><td>${r.late_installments}</td><td>${ymd(r.created_at)}</td><td class="row">${r.pos===1 ? `<button class="pri" data-approve="${r.loan_id}" data-bal="${r.active_balance}" data-amt="${r.amount}">اعتماد وجدولة</button>` : ''}<button class="warn" data-reject="${r.loan_id}">رفض</button></td></tr>`).join('')}</tbody></table><p class="mut">الاعتماد متاح لصاحب الدور الأول فقط.</p>` : '<p class="mut">لا توجد طلبات في الطابور.</p>'}</div>`;
+  h += `<div class="card"><h2>قيد الإجراء</h2>${(inprog||[]).length ? (inprog).map(l => {
+    let act = '';
+    if(l.status==='docs_uploaded') act = `<button class="pri" data-verify="${l.id}">الوثائق مستوفية</button>`;
+    if(l.status==='verified') act = l.verified_by === me.id ? '<span class="chip wait">بانتظار الأدمن الثاني</span>' : `<button class="pri" data-release="${l.id}">اعتماد الصرف</button>`;
+    if(l.status==='ready') act = `<button class="pri" data-disburse="${l.id}" data-mid="${l.member_id}" data-amt="${l.amount}" data-fee="${l.fee_enabled ? l.fee : 0}">تم الصرف — رفع الإشعار</button>`;
+    if(l.status==='approved') act = '<span class="chip wait">بانتظار وثائق العضو</span>';
+    return `<div class="row sp" style="border-bottom:1px solid var(--line);padding:10px 0"><div><b>${mLink(l.member_id, l.members?.full_name)}</b> · ${fmt(l.total)} ريال <span class="chip">${ST[l.status]}</span></div><div class="row"><a class="btn" href="#loan-${l.id}">الملف</a>${act}<button class="warn" data-reject="${l.id}">رفض</button></div></div>`; }).join('') : '<p class="mut">لا يوجد.</p>'}</div>`;
+  h += `<div class="card"><h2>آخر المصروف</h2>${(done||[]).length ? `<table class="stack"><thead><tr><th>العضو</th><th class="n">المبلغ</th><th>تاريخ الصرف</th><th></th></tr></thead><tbody>${done.map(l => `<tr><td>${mLink(l.member_id, l.members?.full_name)}</td><td class="n">${fmt(l.total)}</td><td>${ymd(l.disbursed_at)}</td><td><a href="#loan-${l.id}">الملف</a></td></tr>`).join('')}</tbody></table>` : '<p class="mut">لا يوجد.</p>'}</div>`;
+  $('view').innerHTML = h;
+  const nd = new Date(new Date().getFullYear(), new Date().getMonth()+1, 1); const next = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
+  $('view').querySelectorAll('[data-approve]').forEach(b => b.onclick = () => dialog('اعتماد وجدولة',
+    `<p class="mut">طلب ${fmt(b.dataset.amt)} ريال. عدّل المتبقي من القرض السابق إذا لزم.</p>
+     <label>المتبقي من القرض السابق<input name="prev" type="number" min="0" value="${+b.dataset.bal || 0}"></label>
+     <label>القسط الشهري<input name="inst" type="number" min="1" value="2500" required></label>
+     <label>شهر أول قسط<input name="first" type="month" value="${next}" required></label>
+     <label style="display:flex;gap:10px;align-items:center;color:var(--ink)"><input type="checkbox" name="fee" value="1" style="width:22px;min-height:22px;margin:0"> تفعيل الرسوم — ${fmt(feeOf(b.dataset.amt))} ريال (1 بالألف من ${fmt(b.dataset.amt)})</label>`,
+    async d => { const {error} = await sb.rpc('admin_approve', {p_loan: +b.dataset.approve, p_installment: +d.get('inst'), p_first_due: d.get('first') + '-01', p_prev_balance: +d.get('prev') || 0}); if(error) throw error;
+      const {error: e2} = await sb.rpc('admin_set_fee', {p_loan: +b.dataset.approve, p_enabled: d.get('fee') === '1'}); if(e2) throw e2;
+      toast(d.get('fee') === '1' ? 'تم الاعتماد مع رسوم ' + fmt(feeOf(b.dataset.amt)) + ' ريال' : 'تم الاعتماد بدون رسوم'); render(); }));
+  $('view').querySelectorAll('[data-reject]').forEach(b => b.onclick = () => dialog('رفض الطلب', '<label>السبب<input name="r" required></label>',
+    async d => { const {error} = await sb.rpc('admin_reject', {p_loan: +b.dataset.reject, p_reason: d.get('r')}); if(error) throw error; render(); }, 'رفض'));
+  $('view').querySelectorAll('[data-verify]').forEach(b => b.onclick = () => dialog('مراجعة الوثائق', '<p>راجعت الاتفاقية الموقعة وصورة الحوالة المجدولة من ملف القرض، وهي مستوفية للشروط؟</p>',
+    async () => { const {error} = await sb.rpc('admin_verify', {p_loan: +b.dataset.verify}); if(error) throw error; toast('وصل إشعار للأدمن الثاني'); render(); }));
+  $('view').querySelectorAll('[data-release]').forEach(b => b.onclick = () => dialog('الاعتماد الثاني', '<p>أعتمد هذا القرض للصرف؟</p>',
+    async () => { const {error} = await sb.rpc('admin_release', {p_loan: +b.dataset.release}); if(error) throw error; toast('القرض جاهز للصرف'); render(); }));
+  $('view').querySelectorAll('[data-disburse]').forEach(b => b.onclick = () => dialog('تسجيل الصرف', (+b.dataset.fee > 0 ? `<div class="rules">المبلغ المحول للعضو: <b>${fmt(b.dataset.amt - b.dataset.fee)}</b> ريال<br><span class="mut">القرض ${fmt(b.dataset.amt)} − رسوم ${fmt(b.dataset.fee)} (تتسجل في بند الرسوم تلقائياً)</span></div>` : `<div class="rules">المبلغ المحول للعضو: <b>${fmt(b.dataset.amt)}</b> ريال (بدون رسوم)</div>`) + '<p class="mut">بعد التحويل من الحساب الأساسي (بنك الرياض) ارفع صورة إشعار الحوالة.</p><label>إشعار الحوالة<input type="file" name="f" accept="image/*,application/pdf" required></label>',
+    async d => { const p = await upload(d.get('f'), `${b.dataset.mid}/${b.dataset.disburse}/receipt`); const {error} = await sb.rpc('admin_disburse', {p_loan: +b.dataset.disburse, p_receipt: p}); if(error) throw error; toast('تم تسجيل الصرف'); render(); }));
+}
+
+function editMember(m, done){
+      dialog('بيانات ' + esc(m.full_name), `<div class="g2"><label>الجوال<input name="phone" inputmode="tel" value="${esc(m.phone || '')}"></label><label>البريد<input name="email" type="email" value="${esc(m.email || '')}"></label>
+        <label>الآيبان<input name="iban" dir="ltr" placeholder="SA.." value="${esc(m.iban || '')}"></label><label>بنك العضو<input name="own_bank" value="${esc(m.own_bank || '')}"></label>
+        <label>المدينة<input name="city" value="${esc(m.city || '')}"></label></div><p class="mut">رقم الهوية ما يتعدل من هنا لأن الدخول مربوط فيه.</p>`,
+        async d => { const iban = (d.get('iban') || '').replace(/\s/g, '').toUpperCase() || null;
+          if(iban && !ibanOk(iban)) throw new Error('الآيبان غير صحيح — لازم SA و22 رقم');
+          const upd = {phone: d.get('phone').trim() || null, email: d.get('email').trim() || null, iban, own_bank: d.get('own_bank').trim() || null, city: d.get('city').trim() || null};
+          const {error} = await sb.from('members').update(upd).eq('id', m.id); if(error) throw error; Object.assign(m, upd); toast('تم الحفظ'); done(); }, 'حفظ');
+}
+
+// ---------- الأدمن: الأعضاء ----------
+async function viewMembers(){
+  const {data: all, error} = await sb.from('members').select('*').order('member_no', {nullsFirst:false});
+  if(error) throw error;
+  const owners = bankOwners(all); let f = bankFilter();
+  const bankSel = (v, attr) => `<select ${attr} style="min-height:36px;margin:0"><option value="">— بدون —</option>${BANK_ORDER.map(b => `<option value="${b}" ${v === b ? 'selected' : ''}>${BANKS[b]}</option>`).join('')}</select>`;
+  $('view').innerHTML = `<div class="card"><h2>إضافة عضو</h2><form id="addM"><div class="g2">
+    <label>رقم العضوية<input name="no" type="number"></label><label>رقم الهوية<input name="nid" inputmode="numeric" maxlength="10" required></label>
+    <label>الاسم<input name="name" required></label><label>الجوال<input name="phone" inputmode="tel"></label>
+    <label>تاريخ الانضمام<input name="joined" type="date"></label><label>يودع في بنك${bankSel(f !== 'all' && f !== 'none' && f !== 'mine' ? f : (myBanks()[0] || ''), 'name="bank"')}</label>
+    ${me.is_super ? '<label>الصلاحية<select name="adm"><option value="0">عضو</option><option value="1">أدمن</option></select></label>' : ''}<label>الإيميل<input name="email" type="email" dir="ltr"></label></div>
+    <button class="pri">إضافة</button></form>
+    <p class="mut">العضو يفعّل دخوله بنفسه من "أول مرة تدخل؟" في صفحة الدخول، بشرط تكون هويته وجواله وإيميله مسجلين صح.</p></div>
+  <div class="card"><h2>الأعضاء (<span id="mCount"></span>)</h2><div id="bf"></div>
+  <table class="stack"><thead><tr><th>#</th><th>الاسم</th><th>البنك</th><th>الهوية</th><th>الجوال</th><th>الآيبان</th><th>الحالة</th><th>الدخول</th></tr></thead><tbody id="mBody"></tbody></table></div>`;
+  function draw(){
+    const list = all.filter(m => bankMatch(m, f)).sort(bankSort); let last;
+    $('bf').innerHTML = bankChips(all, f, owners); $('mCount').textContent = list.length;
+    $('mBody').innerHTML = list.map(m => { const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="8">${bankTitle(m.bank, owners)}</th></tr>`) : '';
+      return g + `<tr><td>${m.member_no ?? ''}</td><td>${mLink(m.id, m.full_name)}${m.is_super ? ' <span class="chip">سوبر أدمن</span>' : m.is_admin ? ' <span class="chip">أدمن</span>' : ''} <a href="#member-${m.id}" class="mut">الملف</a> · <a href="#" data-edit="${m.id}" class="mut">تعديل</a>${me.is_super && !m.is_super && m.id !== me.id ? ` · <a href="#" data-adm="${m.id}" class="mut">${m.is_admin ? 'إلغاء الأدمن' : 'تعيين أدمن'}</a>` : ''}</td><td>${bankSel(m.bank || '', `data-bank="${m.id}"`)}</td><td>${esc(m.national_id)}</td><td>${esc(m.phone)}</td><td dir="ltr" style="font-size:12px">${m.iban ? esc(m.iban) : '<span class="mut">—</span>'}</td><td><select data-st="${m.id}" style="min-height:36px;margin:0">${['active','suspended','withdrawn','deceased'].map(s => `<option value="${s}" ${m.status===s?'selected':''}>${{active:'نشط',suspended:'موقوف / قانوني',withdrawn:'منسحب',deceased:'متوفى'}[s]}</option>`).join('')}</select></td><td>${m.user_id ? '<span class="chip">مفعّل</span>' : '<span class="chip wait">غير مفعّل</span>'}</td></tr>`; }).join('')
+      || '<tr><td colspan="8" class="mut">لا يوجد أعضاء في هذا الحساب.</td></tr>';
+    $('mBody').querySelectorAll('[data-edit]').forEach(a => a.onclick = e => { e.preventDefault(); editMember(all.find(x => x.id === +a.dataset.edit), draw); });
+    $('mBody').querySelectorAll('[data-adm]').forEach(a => a.onclick = e => { e.preventDefault(); const m = all.find(x => x.id === +a.dataset.adm), on = !m.is_admin;
+      dialog(on ? 'تعيين أدمن' : 'إلغاء الأدمن', on ? `<p><b>${esc(m.full_name)}</b> بيصير أدمن: يدخل الحركات ويطابق الحوالات ويراجع الطلبات ويشوف كل الأعضاء. ما يقدر يغيّر صلاحيات أحد.</p>` : `<p><b>${esc(m.full_name)}</b> بيرجع عضو عادي ويشوف صفحته بس.</p>`, async () => {
+        const {data, error} = await sb.rpc('tw_set_admin', {p_member: m.id, p_admin: on}); if(error) throw new Error(/function|schema cache/.test(error.message) ? 'شغّل كود الصلاحيات في Supabase أول' : errMsg(error));
+        if(data !== 'ok') throw new Error({only_super:'بس السوبر أدمن يقدر يغيّر الصلاحيات', super_target:'ما يصير تغيّر صلاحية سوبر أدمن', self:'ما تقدر تغيّر صلاحيتك'}[data] || data);
+        m.is_admin = on; toast(on ? 'صار أدمن' : 'رجع عضو'); draw(); }, on ? 'تعيين' : 'إلغاء'); });
+    $('mBody').querySelectorAll('[data-docs]').forEach(a => a.onclick = e => { e.preventDefault(); run(null, async () => {
+      const m = all.find(x => x.id === +a.dataset.docs), html = await docsHtml(m.id);
+      $('dlgHost').innerHTML = `<div class="dlg"><div class="card" style="max-width:640px"><div class="row sp"><h2 style="margin:0">${esc(m.full_name)}</h2><button type="button" id="dlgNo">إغلاق</button></div>${html ? html.replace('<div class="card"><h2>المستندات</h2>', '<div>') : '<p class="mut">لا توجد مستندات لهذا العضو.</p>'}</div></div>`;
+      $('dlgNo').onclick = () => $('dlgHost').innerHTML = ''; bindDocs($('dlgHost')); }); });
+    $('mBody').querySelectorAll('[data-st]').forEach(s => s.onchange = () => run(null, async () => { const {error} = await sb.from('members').update({status: s.value}).eq('id', +s.dataset.st); if(error) throw error; all.find(m => m.id === +s.dataset.st).status = s.value; toast('تم التحديث'); }));
+    $('mBody').querySelectorAll('[data-bank]').forEach(s => s.onchange = () => run(s, async () => { const v = s.value || null;
+      const {error} = await sb.from('members').update({bank: v}).eq('id', +s.dataset.bank); if(error) throw error;
+      all.find(m => m.id === +s.dataset.bank).bank = v; toast(v ? 'نُقل إلى حساب ' + BANKS[v] : 'أُزيل البنك'); draw(); }));
+  }
+  $('bf').onclick = e => { const b = e.target.closest('[data-bf]'); if(!b) return; f = b.dataset.bf; setBankFilter(f); draw(); };
+  draw();
+  $('addM').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    const {error} = await sb.from('members').insert({member_no: d.get('no') ? +d.get('no') : null, national_id: d.get('nid').trim(), full_name: d.get('name').trim(), phone: d.get('phone') || null, email: (d.get('email') || '').trim() || null, joined_on: d.get('joined') || null, bank: d.get('bank') || null, is_admin: me.is_super && d.get('adm')==='1'});
+    if(error) throw error; toast('تمت الإضافة'); render(); }); };
+}
+
+// ---------- الأدمن: الحركات (الإدخال الشهري حسب البنك) ----------
+let txMonth = null;
+async function viewTx(){
+  const now = new Date(); txMonth = txMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const period = txMonth + '-01';
+  const [{data: all, error}, {data: loans}, {data: monthTx, error: e2}, {data: tx}] = await Promise.all([
+    sb.from('members').select('id, full_name, member_no, bank, status, is_admin, admin_banks').order('member_no'),
+    sb.from('loans').select('id, member_id, total, installment, first_due').eq('status','disbursed'),
+    sb.from('transactions').select('member_id, kind, amount').eq('period', period),
+    sb.from('transactions').select('*, members!transactions_member_id_fkey(full_name)').order('created_at', {ascending:false}).limit(40)
+  ]);
+  if(error) throw error; if(e2) throw e2;
+  const owners = bankOwners(all), ms = all.filter(m => !m.status || m.status === 'active');
+  let f = bankFilter();
+  const loanOf = id => (loans||[]).find(l => l.member_id === id);
+  const prev = {}; (monthTx||[]).forEach(t => { const p = prev[t.member_id] ||= {}; p[t.kind] = (p[t.kind] || 0) + Number(t.amount); });
+  const draft = {}; ms.forEach(m => draft[m.id] = {s:'', i:''});
+  const shown = () => ms.filter(m => bankMatch(m, f)).sort(bankSort);
+  const has = m => !!(prev[m.id]?.subscription || prev[m.id]?.installment || draft[m.id].s || draft[m.id].i);
+  const pending = () => ms.filter(m => draft[m.id].s || draft[m.id].i);
+  const prevTxt = m => { const p = prev[m.id]; if(!p) return '<span class="mut">—</span>'; return ['subscription','installment','fee'].filter(k => p[k]).map(k => `${KIND[k]} ${fmt(p[k])}`).join(' · '); };
+
+  $('view').innerHTML = `<div class="card">
+    <div class="row sp"><h2 style="margin:0">الإدخال الشهري</h2><label style="margin:0;min-width:170px">الشهر<input type="month" id="txM" value="${txMonth}"></label></div>
+    <p class="mut">اللي عليه <b class="okc">✓ مدفوع</b> مسجل ومحفوظ، وما يحتاج تسوي له شي. اكتب المبلغ لغير المسجلين واضغط Enter للعضو التالي، وبعدين <b>حفظ</b>.</p>
+    <div id="bf"></div>
+    <div id="sumBox"></div>
+    <div class="row" style="margin-bottom:8px"><button type="button" id="fillAll">تعبئة المستحق</button><button type="button" id="clearAll">تفريغ</button><button type="button" class="pri" data-save>حفظ</button></div>
+    <table class="stack ent" id="entT"><thead><tr><th>العضو</th><th>الحالة</th><th class="n">اشتراك</th><th class="n">القسط المستحق</th><th class="n">قسط</th></tr></thead><tbody></tbody><tfoot></tfoot></table>
+    <div class="row" style="margin-top:10px"><button type="button" class="pri" data-save>حفظ</button></div></div>
+  <div class="card"><h2>حركة مفردة (رسوم أو تعديل)</h2><form id="txF"><div class="g2">
+    <label>العضو<select name="m" required>${all.slice().sort(bankSort).map(m => `<option value="${m.id}">${m.member_no ?? ''} — ${esc(m.full_name)}${m.bank ? ' · ' + BANKS[m.bank] : ''}</option>`).join('')}</select></label>
+    <label>الشهر<input name="p" type="month" value="${txMonth}" required></label>
+    <label>النوع<select name="k">${Object.entries(KIND).filter(k => k[0] !== 'disbursement').map(([k,t]) => `<option value="${k}" ${k==='fee'?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label>المبلغ<input name="a" type="number" min="1" value="50" required></label></div>
+    <p class="mut">قسط القرض يُربط تلقائياً بقرض العضو القائم.</p><button class="pri">حفظ</button></form></div>
+  <div class="card"><h2>آخر الحركات</h2><table class="stack"><thead><tr><th>العضو</th><th>الشهر</th><th>النوع</th><th class="n">المبلغ</th></tr></thead><tbody>${(tx||[]).map(t => `<tr><td>${mLink(t.member_id, t.members?.full_name)}</td><td>${monthTxt(t.period)}</td><td>${KIND[t.kind]}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</tbody></table></div>`;
+
+  function chips(){ $('bf').innerHTML = bankChips(ms, f, owners, has); }
+  const addOpen = new Set();
+  const dueOf = m => { const l = loanOf(m.id); return l && (!l.first_due || String(l.first_due).slice(0, 7) <= txMonth) ? (+l.installment || 0) : 0; };
+  const recS = m => prev[m.id]?.subscription || 0, recI = m => prev[m.id]?.installment || 0;
+  const status = m => { const l = loanOf(m.id), s = recS(m) + (+draft[m.id].s || 0), i = recI(m) + (+draft[m.id].i || 0);
+    const subOk = s >= SUB, instOk = i >= dueOf(m), saved = recS(m) || recI(m), any = s || i;
+    if(subOk && instOk) return saved && !(+draft[m.id].s || +draft[m.id].i) ? '<span class="chip okc">✓ مدفوع</span>' : (any ? '<span class="chip okc">مكتمل — احفظ</span>' : '');
+    return any ? '<span class="chip wait">جزئي</span>' : '<span class="chip" style="opacity:.6">غير مسجل</span>'; };
+  const cell = (m, k) => { const rec = k === 's' ? recS(m) : recI(m), d = draft[m.id][k];
+    const inp = `<input data-m="${m.id}" data-k="${k}" inputmode="numeric" enterkeyhint="next" value="${d}" placeholder="${rec ? 'إضافة' : '0'}" aria-label="${k === 's' ? 'اشتراك' : 'قسط'} ${esc(m.full_name)}">`;
+    if(!rec) return inp;
+    return `<span class="okc">✓ ${fmt(rec)}</span>${addOpen.has(m.id + k) ? '<br>' + inp : ` <a href="#" data-add="${m.id + k}" class="mut" style="font-size:12px">+ إضافة</a>`}`; };
+  function totals(){
+    const list = shown(), sumS = list.reduce((a, m) => a + (+draft[m.id].s || 0), 0), sumI = list.reduce((a, m) => a + (+draft[m.id].i || 0), 0), due = list.reduce((a, m) => a + dueOf(m), 0);
+    const rS = list.reduce((a, m) => a + recS(m), 0), rI = list.reduce((a, m) => a + recI(m), 0);
+    const line = (r, n) => `${fmt(r + n)}${n ? `<br><span class="mut" style="font-size:12px">مسجل ${fmt(r)} + جديد ${fmt(n)}</span>` : ''}`;
+    $('entT').tFoot.innerHTML = list.length ? `<tr><td>المجموع · ${list.length} عضو</td><td>${list.filter(m => recS(m) || recI(m)).length} مدفوع · ${list.filter(m => !(recS(m) || recI(m))).length} غير مسجل</td><td class="n">${line(rS, sumS)}</td><td class="n">${fmt(due)}</td><td class="n">${line(rI, sumI)}</td></tr>` : '';
+    shown().forEach(m => { const c = document.querySelector(`[data-st-m="${m.id}"]`); if(c) c.innerHTML = status(m); });
+    const groups = {}; list.forEach(m => (groups[m.bank || ''] ||= []).push(m));
+    $('sumBox').innerHTML = Object.entries(groups).map(([b, g]) => {
+      const S = g.reduce((x, m) => x + recS(m) + (+draft[m.id].s || 0), 0), I = g.reduce((x, m) => x + recI(m) + (+draft[m.id].i || 0), 0);
+      const full = m => recS(m) + (+draft[m.id].s || 0) >= SUB && recI(m) + (+draft[m.id].i || 0) >= dueOf(m);
+      const ok = g.filter(full), late = g.filter(m => !full(m));
+      const dest = b === 'riyad' ? 'إجمالي المودَع في الحساب الرئيسي' : b ? `المطلوب تحويله من ${BANKS[b]} إلى الحساب الرئيسي (${BANKS.riyad})` : 'الإجمالي';
+      return `<div class="sumc"><h3>${b ? BANKS[b] : 'بدون بنك'} · ${monthTxt(txMonth + '-01')}</h3>
+        <div class="sumg"><div><span>سدّد كامل</span><b class="okc">${ok.length}</b></div><div><span>متخلف / ناقص</span><b style="color:#b42318">${late.length}</b></div>
+        <div><span>إيرادات الاشتراكات</span><b>${fmt(S)}</b></div><div><span>إيرادات الأقساط</span><b>${fmt(I)}</b></div></div>
+        <div class="sumt"><span>${dest}</span><b>${fmt(S + I)}</b></div>
+        ${late.length ? `<p class="mut" style="margin:6px 0 0;font-size:13px">المتخلفين: ${late.map(m => `${m.member_no ?? ''} ${esc(m.full_name)}`).join(' · ')}</p>` : ''}</div>`; }).join('');
+    const n = pending().length; document.querySelectorAll('[data-save]').forEach(b => b.textContent = n ? `حفظ (${n})` : 'حفظ');
+  }
+  function draw(){
+    let last; chips();
+    $('entT').tBodies[0].innerHTML = shown().map(m => { const l = loanOf(m.id), d = draft[m.id];
+      const g = m.bank !== last ? (last = m.bank, `<tr class="grp"><th colspan="5">${bankTitle(m.bank, owners)}</th></tr>`) : '';
+      return g + `<tr><td>${m.member_no ?? ''} — ${mLink(m.id, m.full_name)}</td><td data-st-m="${m.id}">${status(m)}</td>
+        <td class="n">${cell(m, 's')}</td>
+        <td class="n">${dueOf(m) ? fmt(dueOf(m)) : (l ? `<span class="mut" style="font-size:12px">يبدأ ${monthTxt(l.first_due)}</span>` : '—')}</td>
+        <td class="n">${dueOf(m) || recI(m) ? cell(m, 'i') : '—'}</td></tr>`; }).join('')
+      || '<tr><td colspan="5" class="mut">لا يوجد أعضاء نشطين في هذا الحساب.</td></tr>';
+    totals();
+  }
+  $('bf').onclick = e => { const b = e.target.closest('[data-bf]'); if(!b) return; f = b.dataset.bf; setBankFilter(f); draw(); };
+  $('entT').addEventListener('click', e => { const a = e.target.closest('[data-add]'); if(!a) return; e.preventDefault(); addOpen.add(a.dataset.add); draw(); const inp = $('entT').querySelector(`input[data-m="${parseInt(a.dataset.add)}"][data-k="${a.dataset.add.slice(-1)}"]`); if(inp) inp.focus(); });
+  $('entT').addEventListener('input', e => { const el = e.target; if(!el.dataset.m) return; el.value = digits(el.value); draft[el.dataset.m][el.dataset.k] = el.value; totals(); chips(); });
+  $('entT').addEventListener('keydown', e => { const el = e.target; if(!el.dataset.k || !['Enter','ArrowDown','ArrowUp'].includes(e.key)) return; e.preventDefault();
+    const ins = [...$('entT').querySelectorAll(`input[data-k="${el.dataset.k}"]`)], nx = ins[ins.indexOf(el) + (e.key === 'ArrowUp' ? -1 : 1)]; if(nx){ nx.focus(); nx.select(); } });
+  $('fillAll').onclick = () => { let n = 0; shown().forEach(m => { const p = prev[m.id] || {}, l = loanOf(m.id), d = draft[m.id];
+      if(!p.subscription && !d.s){ d.s = String(SUB); n++; } if(dueOf(m) && !p.installment && !d.i){ d.i = String(dueOf(m)); n++; } });
+    draw(); toast(n ? 'تمت تعبئة المستحق لغير المسجلين — عدّل الاستثناءات ثم احفظ' : 'كل الأعضاء هنا مسجلين لهذا الشهر'); };
+  $('clearAll').onclick = () => { shown().forEach(m => draft[m.id] = {s:'', i:''}); draw(); };
+  $('txM').onchange = e => { if(pending().length && !confirm('فيه مبالغ ما انحفظت، تبي تغيّر الشهر وتتركها؟')){ e.target.value = txMonth; return; } txMonth = e.target.value || txMonth; render(); };
+  document.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
+    const rows = [];
+    for(const m of pending()){ const d = draft[m.id];
+      if(+d.s) rows.push({member_id: m.id, period, kind: 'subscription', amount: +d.s, loan_id: null, created_by: me.id});
+      if(+d.i){ const l = loanOf(m.id); if(!l){ toast(`${m.full_name}: ما عليه قرض قائم`); return; } rows.push({member_id: m.id, period, kind: 'installment', amount: +d.i, loan_id: l.id, created_by: me.id}); } }
+    if(!rows.length){ toast('ما فيه مبالغ للحفظ'); return; }
+    const total = rows.reduce((a, r) => a + r.amount, 0), banks = [...new Set(pending().map(m => m.bank ? BANKS[m.bank] : 'بدون بنك'))].join('، ');
+    dialog('حفظ حركات ' + monthTxt(period), `<p>${rows.length} حركة بمجموع <b>${fmt(total)}</b> ريال<br><span class="mut">الحسابات: ${esc(banks)}</span></p>`, async () => {
+      const {error} = await sb.from('transactions').insert(rows); if(error) throw error; toast('تم حفظ ' + rows.length + ' حركة'); render(); }, 'حفظ');
+  });
+  draw();
+
+  $('txF').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    const mid = +d.get('m'), kind = d.get('k'); const loan = loanOf(mid);
+    if(kind==='installment' && !loan) throw new Error('هذا العضو ليس عليه قرض قائم');
+    const {error} = await sb.from('transactions').insert({member_id: mid, period: d.get('p') + '-01', kind, amount: +d.get('a'), loan_id: kind==='installment' ? loan.id : null, created_by: me.id});
+    if(error) throw error; toast('تم الحفظ'); render(); }); };
+}
+
+// ---------- الأدمن: التقرير الشهري ----------
+let repMonth = null;
+const ym = d => String(d).slice(0, 7);
+const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while(y < y2 || (y === y2 && m <= m2)){ out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m > 12){ m = 1; y++; } } return out; };
+async function reportData(M){
+  const [{data: ms, error}, {data: tx, error: e2}, {data: loans}, {data: fm}, {data: led}] = await Promise.all([
+    sb.from('members').select('id, member_no, full_name, bank, status, is_admin, admin_banks, fee_due'),
+    sb.from('transactions').select('member_id, period, kind, amount, loan_id, note'),
+    sb.from('loans').select('id, member_id, amount, total, installment, first_due, status, fee, fee_enabled, disbursed_at, note'),
+    sb.from('fund_months').select('*').order('period'),
+    sb.from('fund_ledger').select('*').order('period')
+  ]);
+  if(error) throw error; if(e2) throw e2;
+  if(!(fm||[]).length) throw new Error('شغّل ملف tawad-fees-report.sql أولاً');
+  const byId = {}; ms.forEach(m => byId[m.id] = m);
+  const isOpen = t => (t.note || '').startsWith(OPEN_NOTE);
+  const sum = (a, f) => a.reduce((s, x) => s + (+f(x) || 0), 0);
+  const fmRow = {}; fm.forEach(r => fmRow[ym(r.period)] = r);
+  const months = monthsBetween(ym(fm[0].period), M);
+  let bal = +fm[0].opening_balance || 0, cur = null;
+  for(const m of months){
+    const r = fmRow[m] || {};
+    if(r.opening_balance != null) bal = +r.opening_balance;
+    const t = tx.filter(x => ym(x.period) === m && !isOpen(x));
+    const sub = sum(t.filter(x => x.kind === 'subscription'), x => x.amount), inst = sum(t.filter(x => x.kind === 'installment'), x => x.amount);
+    const mfee = sum(t.filter(x => x.kind === 'fee' && !x.loan_id), x => x.amount), lfee = sum(t.filter(x => x.kind === 'fee' && x.loan_id), x => x.amount);
+    const newLoans = loans.filter(l => l.disbursed_at && ym(l.disbursed_at) === m && !(l.note || '').startsWith(OPEN_NOTE));
+    const out = (+r.extra_loans_out || 0) + sum(newLoans, l => l.amount);
+    const lg = (led||[]).filter(x => ym(x.period) === m), lin = sum(lg.filter(x => x.kind === 'income'), x => x.amount), lout = sum(lg.filter(x => x.kind === 'expense'), x => x.amount);
+    const opening = bal, closing = opening + sub + inst + mfee + lfee + lin - out - lout;
+    const bank = {}; t.filter(x => ['subscription','installment','fee'].includes(x.kind)).forEach(x => { const b = byId[x.member_id]?.bank || 'none'; bank[b] = (bank[b] || 0) + +x.amount; });
+    cur = {m, opening, sub, inst, mfee, lfee, lin, lout, out, closing, bank, newLoans: r.extra_loans_out ? null : newLoans.length, extraNote: r.note};
+    bal = closing;
+  }
+  // حالة القروض حتى نهاية الشهر
+  const upto = x => ym(x.period) <= M;
+  const disb = loans.filter(l => l.status === 'disbursed' || l.status === 'closed');
+  let outstanding = 0, due = 0, late = 0, lateAmt = 0;
+  for(const l of disb){
+    const paidAll = sum(tx.filter(x => x.loan_id === l.id && x.kind === 'installment' && upto(x)), x => x.amount);
+    const rem = (+l.total || 0) - paidAll; if(rem <= 0) continue; outstanding += rem;
+    if(l.first_due && ym(l.first_due) <= M){
+      const paidM = sum(tx.filter(x => x.loan_id === l.id && x.kind === 'installment' && ym(x.period) === M), x => x.amount);
+      const d = Math.min(+l.installment || rem, rem + paidM); due++; if(paidM < d){ late++; lateAmt += d - paidM; }
+    }
+  }
+  const active = ms.filter(m => (!m.status || m.status === 'active') && m.bank);
+  const subPaid = new Set(tx.filter(x => x.kind === 'subscription' && ym(x.period) === M && !isOpen(x)).map(x => x.member_id));
+  const feeBy = {}; tx.filter(x => x.kind === 'fee' && !x.loan_id && upto(x)).forEach(x => feeBy[x.member_id] = (feeBy[x.member_id] || 0) + +x.amount);
+  const feeLate = active.filter(m => (feeBy[m.id] || 0) < feeDueOf(m) - 0.001);
+  const subsBy = {}; tx.filter(x => x.kind === 'subscription' && upto(x)).forEach(x => subsBy[x.member_id] = (subsBy[x.member_id] || 0) + +x.amount);
+  const subLate = active.filter(m => (subsBy[m.id] || 0) < expectedSubs(M) - 0.01);
+  const feesIn = sum(tx.filter(x => x.kind === 'fee' && upto(x)), x => x.amount);
+  const ledAll = (led||[]).filter(upto), ledIn = sum(ledAll.filter(x => x.kind === 'income'), x => x.amount), ledOut = sum(ledAll.filter(x => x.kind === 'expense'), x => x.amount);
+  return {...cur, owners: bankOwners(ms), activeCount: active.length, subPaidCount: active.filter(m => subPaid.has(m.id)).length,
+    outstanding, due, late, lateAmt, subLateCount: subLate.length, subLateAmt: sum(subLate, m => expectedSubs(M) - (subsBy[m.id] || 0)), feeLateCount: feeLate.length, feeLateAmt: sum(feeLate, m => feeDueOf(m) - (feeBy[m.id] || 0)),
+    feesIn, ledIn, ledOut, feesBalance: feesIn + ledIn - ledOut};
+}
+function reportBody(r){
+  const row = (a, b, strong) => `<tr><td>${a}</td><td class="n">${strong ? '<b>' : ''}${b}${strong ? '</b>' : ''}</td></tr>`;
+  const banks = BANK_ORDER.filter(b => b !== 'other').map(b => row(`${BANKS[b]}${r.owners[b] ? ' — ' + esc(r.owners[b]) : ''}`, fmt(r.bank[b] || 0)));
+  if(r.bank.other || r.bank.none) banks.push(row('بنوك أخرى / بدون بنك', fmt((r.bank.other || 0) + (r.bank.none || 0))));
+  const pct = (a, b) => b ? ` <span class="mut">(${Math.round(a / b * 100)}٪)</span>` : '';
+  return `<h3>1. المبالغ المحولة على حسابات الصندوق</h3><table><tbody>${banks.join('')}${row('مجموع إيراد الشهر', fmt(r.sub + r.inst + r.mfee + r.lfee), true)}</tbody></table>
+  <h3>2. حركة أموال الصندوق</h3><table><tbody>
+    ${row('الرصيد السابق', fmt(r.opening))}
+    ${row('اشتراكات شهرية', fmt(r.sub))}${row('أقساط قروض', fmt(r.inst))}
+    ${row('رسوم القروض', fmt(r.mfee + r.lfee))}
+    ${r.lin ? row('إيرادات أخرى في بند الرسوم', fmt(r.lin)) : ''}
+    ${row(`قروض صُرفت هذا الشهر${r.newLoans != null ? ` (${r.newLoans})` : ''}`, '− ' + fmt(r.out))}
+    ${r.lout ? row('مصروفات الجمعية', '− ' + fmt(r.lout)) : ''}
+    ${row('الرصيد الحالي للصندوق', fmt(r.closing), true)}</tbody></table>
+  <h3>3. إحصاءات</h3><table><tbody>
+    ${row('عدد الأعضاء النشطين', r.activeCount)}
+    ${row('دفعوا اشتراك هذا الشهر', r.subPaidCount + pct(r.subPaidCount, r.activeCount))}
+    ${row('إجمالي المتبقي من القروض القائمة', fmt(r.outstanding))}
+    ${row('أعضاء عليهم اشتراكات متعثرة', `${r.subLateCount} — ${fmt(r.subLateAmt)} ريال`)}
+    ${row('أقساط مستحقة هذا الشهر', r.due)}
+    ${row('أقساط متعثرة هذا الشهر', r.late + pct(r.late, r.due) + (r.lateAmt ? ` — ${fmt(r.lateAmt)} ريال` : ''))}</tbody></table>
+  <h3>4. بند الرسوم (منفصل عن رأس مال الصندوق)</h3><table><tbody>
+    ${row('رسوم (بأثر رجعي) محصلة هذا الشهر', fmt(r.mfee))}${row('رسوم قروض محصلة هذا الشهر', fmt(r.lfee))}
+    ${row('إجمالي الرسوم المحصلة', fmt(r.feesIn))}${row('إيرادات أخرى', fmt(r.ledIn))}${row('إجمالي المصروفات', '− ' + fmt(r.ledOut))}
+    ${row('رصيد بند الرسوم', fmt(r.feesBalance), true)}
+    ${row('أعضاء عليهم استحقاق رسوم', `${r.feeLateCount} — ${fmt(r.feeLateAmt)} ريال`)}</tbody></table>`;
+}
+async function viewReport(){
+  const now = new Date(); repMonth = repMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const r = await reportData(repMonth);
+  $('view').innerHTML = `<div class="card"><div class="row sp"><h2 style="margin:0">التقرير الشهري — ${monthTxt(repMonth + '-01')}</h2>
+    <div class="row"><input type="month" id="repM" value="${repMonth}" style="width:auto;margin:0"><button class="pri" id="repPdf">عرض كصفحة PDF</button></div></div>
+    ${r.extraNote ? `<p class="mut">${esc(r.extraNote)}</p>` : ''}${reportBody(r)}</div>`;
+  $('repM').onchange = e => { repMonth = e.target.value || repMonth; render(); };
+  $('repPdf').onclick = () => {
+    $('agree').innerHTML = `<div class="bar"><button class="pri" id="agPrint">طباعة / حفظ PDF</button><button id="agClose">إغلاق</button></div>
+    <div class="pgw" id="agW"><section class="page rep" id="agPage"><div class="frame"><img class="logo" src="/icon-192.png" alt="">
+      <div class="ttl">التقرير الشهري لصندوق تواد — ${monthTxt(repMonth + '-01')}</div>${reportBody(r)}
+      <p class="mut" style="margin-top:auto;font-size:11px">صدر من منصة صندوق تواد بتاريخ ${new Date().toLocaleDateString('en-GB')}</p></div></section></div>`;
+    $('agree').classList.remove('hide');
+    const sc = Math.min(1, (innerWidth - 24) / 794); $('agPage').style.transform = `scale(${sc})`; $('agW').style.width = 794*sc + 'px'; $('agW').style.height = 1123*sc + 'px';
+    $('agPrint').onclick = () => window.print(); $('agClose').onclick = () => $('agree').classList.add('hide');
+  };
+}
+
+// ---------- الأدمن: بند الرسوم ----------
+async function viewFees(){
+  const [{data: led, error}, {data: tx}, {data: ms}] = await Promise.all([
+    sb.from('fund_ledger').select('*').order('period', {ascending:false}),
+    sb.from('transactions').select('member_id, period, amount, loan_id, note').eq('kind', 'fee'),
+    sb.from('members').select('id, member_no, full_name, status, bank, fee_due').order('member_no')
+  ]);
+  if(error) throw error;
+  const mfee = (tx||[]).filter(t => !t.loan_id).reduce((s,t) => s + +t.amount, 0), lfee = (tx||[]).filter(t => t.loan_id).reduce((s,t) => s + +t.amount, 0);
+  const lin = (led||[]).filter(x => x.kind === 'income').reduce((s,x) => s + +x.amount, 0), lout = (led||[]).filter(x => x.kind === 'expense').reduce((s,x) => s + +x.amount, 0), dep = (led||[]).filter(x => x.kind === 'deposit').reduce((s,x) => s + +x.amount, 0);
+  const feeBy = {}; (tx||[]).filter(t => !t.loan_id).forEach(t => feeBy[t.member_id] = (feeBy[t.member_id] || 0) + +t.amount);
+  const late = (ms||[]).filter(m => (!m.status || m.status === 'active') && m.bank && (feeBy[m.id] || 0) < feeDueOf(m) - 0.001);
+  const now = new Date(), cm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  $('view').innerHTML = `<div class="kpis">
+    <div class="kpi key"><span class="mut">رصيد بند الرسوم</span><b>${fmt(mfee + lfee + lin - lout)}</b></div>
+    <div class="kpi"><span class="mut">الرسوم المحصلة بأثر رجعي</span><b>${fmt(mfee)}</b></div>
+    <div class="kpi"><span class="mut">رسوم القروض المحصلة</span><b>${fmt(lfee)}</b></div>
+    <div class="kpi"><span class="mut">المصروفات</span><b>${fmt(lout)}</b></div></div>
+  ${dep ? `<div class="card" style="border-color:#e6c44d"><div class="row sp"><div><b>وديعة النثريات</b> <span class="chip wait">للأدمن فقط — ما تظهر في التقرير</span><div class="mut">موجودة في حساب الصندوق الرسمي المجمد، مو في حساب بنك الرياض المستخدم</div></div><b style="font-size:22px">${fmt(dep)}</b></div>
+    <p style="margin:8px 0 0">إجمالي النثريات مع الوديعة: <b>${fmt(mfee + lfee + lin - lout + dep)}</b> ريال</p></div>` : ''}
+  <div class="card"><h2>إضافة قيد</h2><form id="ledF"><div class="g2">
+    <label>النوع<select name="k"><option value="expense">مصروف</option><option value="income">إيراد</option><option value="deposit">وديعة</option></select></label>
+    <label>الشهر<input name="p" type="month" value="${cm}" required></label>
+    <label>البيان<input name="d" required></label><label>المبلغ<input name="a" type="number" min="1" step="0.01" required></label></div>
+    <button class="pri">حفظ</button></form></div>
+  <div class="card"><h2>قيود بند الرسوم</h2><table class="stack"><thead><tr><th>الشهر</th><th>البيان</th><th class="n">إيراد</th><th class="n">مصروف</th></tr></thead><tbody>
+    ${(led||[]).map(x => `<tr><td>${monthTxt(x.period)}</td><td>${esc(x.description)}</td><td class="n">${x.kind === 'income' ? fmt(x.amount) : ''}</td><td class="n">${x.kind === 'expense' ? fmt(x.amount) : x.kind === 'deposit' ? `<span class="chip wait">وديعة ${fmt(x.amount)}</span>` : ''}</td></tr>`).join('')}</tbody></table>
+    <p class="mut">الرسوم (بأثر رجعي ورسوم القروض الجديدة) تنحسب تلقائياً من الحركات، وما تحتاج تسجلها هنا.</p></div>
+  <div class="card"><h2>عليهم استحقاق رسوم (${late.length})</h2><p class="mut">الرسوم = 1 بالألف من كل قرض أخذه العضو، بأثر رجعي. سجّل المدفوع من تبويب الحركات بنوع "رسوم".</p>
+    <table class="stack"><thead><tr><th>#</th><th>العضو</th><th class="n">المستحق</th><th class="n">المدفوع</th><th class="n">المتبقي</th></tr></thead><tbody>
+    ${late.map(m => `<tr><td>${m.member_no ?? ''}</td><td>${mLink(m.id, m.full_name)}</td><td class="n">${fmt(feeDueOf(m))}</td><td class="n">${fmt(feeBy[m.id] || 0)}</td><td class="n">${fmt(feeDueOf(m) - (feeBy[m.id] || 0))}</td></tr>`).join('')}</tbody></table></div>`;
+  $('ledF').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    const {error} = await sb.from('fund_ledger').insert({period: d.get('p') + '-01', kind: d.get('k'), description: d.get('d').trim(), amount: +d.get('a'), created_by: me.id});
+    if(error) throw error; toast('تم الحفظ'); render(); }); };
+}
+
+// ---------- الأدمن: الإعدادات ----------
+const VAPID_PUB = 'BJ24UDoW1nTRxs_lutW1Lh0DCsidaE4lP13YMJN8iWx0KCVwzCoA-UXZgVYQLCwqLvrQuchOIY0Pkok8b9iBYSQ';
+const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function pushCard(){
+  const box = $('pushC'); if(!box) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ok = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  let sub = null; if(ok){ try{ const r = await navigator.serviceWorker.getRegistration('/'); sub = r && await r.pushManager.getSubscription(); } catch(e){} }
+  const head = '<h2>الإشعارات</h2><p class="mut">يوصلك إشعار على الجوال أول ما يتسجل لك اشتراك أو قسط.</p>';
+  if(!ok) box.innerHTML = head + (ios && !standalone ? '<p><b>على الآيفون:</b> افتح الموقع من Safari، واضغط زر المشاركة ← <b>إضافة إلى الشاشة الرئيسية</b>، وبعدين افتح تواد من الأيقونة وارجع هنا.</p>' : '<p class="err">متصفحك ما يدعم الإشعارات. جرّب Chrome على أندرويد أو Safari على الآيفون (بعد إضافته للشاشة الرئيسية).</p>');
+  else if(Notification.permission === 'denied') box.innerHTML = head + '<p class="err">الإشعارات مقفلة لهالموقع من إعدادات المتصفح. افتح إعدادات الموقع في المتصفح واسمح بالإشعارات، وبعدين ارجع هنا.</p>';
+  else if(sub) box.innerHTML = head + '<p><span class="chip okc">✓ مفعّلة على هالجهاز</span></p><div class="row"><button type="button" id="pTest">إرسال إشعار تجربة</button><button type="button" id="pOff">إيقاف</button></div>';
+  else box.innerHTML = head + '<button type="button" class="pri" id="pOn">تفعيل الإشعارات على هالجهاز</button>';
+  if($('pOn')) $('pOn').onclick = () => run($('pOn'), async () => {
+    if(await Notification.requestPermission() !== 'granted') throw new Error('لازم تسمح بالإشعارات');
+    const reg = await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready;
+    const s = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUB)}), j = s.toJSON();
+    const {error} = await sb.from('push_subs').upsert({member_id: me.id, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, ua: navigator.userAgent.slice(0, 200)}, {onConflict: 'endpoint'});
+    if(error) throw new Error(/relation|schema cache/.test(error.message) ? 'الإشعارات مو مفعّلة في قاعدة البيانات لين الحين' : errMsg(error));
+    toast('تفعّلت الإشعارات'); pushCard(); });
+  if($('pOff')) $('pOff').onclick = () => run($('pOff'), async () => { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); toast('توقفت الإشعارات'); pushCard(); });
+  if($('pTest')) $('pTest').onclick = () => run($('pTest'), async () => { const {data: {session}} = await sb.auth.getSession();
+    const r = await fetch(SB_URL + '/functions/v1/dynamic-endpoint', {method: 'POST', headers: {'Content-Type': 'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + session.access_token}, body: JSON.stringify({test: true})});
+    const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error('خدمة الإشعارات مو منشورة لين الحين');
+    toast(d.sent ? 'انرسل، شيك على الجوال' : 'ما انرسل لأي جهاز'); });
+}
+async function viewSettings(){
+  const sig = me.is_admin ? await signed(me.signature_path) : null;
+  $('view').innerHTML = `<div class="card" id="pushC"><h2>الإشعارات</h2><p class="mut">جارٍ التحقق…</p></div><div class="card"><h2>تغيير كلمة السر</h2><form id="chPw"><div class="g2"><label>كلمة السر الجديدة (6 خانات أو أكثر)<input name="p1" type="password" autocomplete="new-password" minlength="6" required></label>
+    <label>أعد كتابتها<input name="p2" type="password" autocomplete="new-password" minlength="6" required></label></div><button class="pri">حفظ كلمة السر</button></form></div>` + (me.is_admin ? `<div class="card"><h2>توقيعي</h2><p class="mut">يظهر تلقائياً على الاتفاقيات التي تعتمدها. ارفع صورة التوقيع على ورق أبيض وتُزال الخلفية تلقائياً.</p>
+    <div style="background:#fff;border:1px dashed var(--line);border-radius:10px;height:110px;display:grid;place-items:center;margin-bottom:10px">${sig ? `<img src="${sig}" style="max-height:100px;max-width:90%">` : '<span class="mut">لا يوجد توقيع</span>'}</div>
+    <form id="sigF"><input type="file" name="f" accept="image/*" required><button class="pri" style="margin-top:10px">رفع التوقيع</button></form></div>` : '');
+  if($('chPw')) $('chPw').onsubmit = e => { e.preventDefault(); const d = new FormData(e.target); run(e.submitter, async () => {
+    if(d.get('p1') !== d.get('p2')) throw new Error('الكلمتين مو متطابقتين');
+    const {error} = await sb.auth.updateUser({password: d.get('p1')});
+    if(error) throw new Error(/same|different/i.test(error.message) ? 'اختر كلمة سر غير القديمة' : /reauth|nonce/i.test(error.message) ? 'لازم تأكيد من الإيميل: استخدم "نسيت كلمة السر" من صفحة الدخول' : errMsg(error));
+    e.target.reset(); toast('انحفظت كلمة السر الجديدة'); }); };
+  pushCard();
+  if($('sigF')) $('sigF').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target).get('f'); run(e.submitter, async () => {
+    const blob = await cleanSig(f); const path = await upload(new File([blob], 'sig.png', {type:'image/png'}), `signatures/${me.id}`);
+    const {error} = await sb.from('members').update({signature_path: path}).eq('id', me.id); if(error) throw error;
+    me.signature_path = path; admins[me.id] = {...(admins[me.id]||{}), signature_path: path}; toast('تم حفظ التوقيع'); render(); }); };
+}
+function cleanSig(file){
+  return new Promise((res, rej) => { const img = new Image(), url = URL.createObjectURL(file);
+    img.onerror = () => rej(new Error('صورة غير صالحة'));
+    img.onload = () => { const sc = Math.min(1, 700/img.width), c = document.createElement('canvas'); c.width = Math.round(img.width*sc); c.height = Math.round(img.height*sc);
+      const x = c.getContext('2d'); x.drawImage(img,0,0,c.width,c.height); const d = x.getImageData(0,0,c.width,c.height), p = d.data;
+      for(let i=0;i<p.length;i+=4){ const l=(p[i]+p[i+1]+p[i+2])/3; if(l>200) p[i+3]=0; else if(l>140) p[i+3]=Math.round(255*(200-l)/60); }
+      x.putImageData(d,0,0); URL.revokeObjectURL(url); c.toBlob(res, 'image/png'); };
+    img.src = url; });
+}
+
+// ---------- مطابقة الحوالات ----------
+const CUT_DAY = 20; // التحويل من يوم 20 وطالع يُحسب للشهر الجاي (نجمع المبالغ بداية الشهر)
+const ymdL = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+const periodOf = d => { const x = d instanceof Date ? new Date(d) : new Date(String(d).slice(0, 10) + 'T12:00:00'); if(x.getDate() >= CUT_DAY) x.setMonth(x.getMonth() + 1, 1); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; };
+function senderKey(desc, own){
+  const d = String(desc || '').replace(/\s+/g, ' ');
+  const ib = (d.match(/SA\d{22}/g) || []).find(x => !own || !x.endsWith(own)); if(ib) return 'iban:' + ib;
+  const ac = (d.match(/\b\d{14}\b/g) || []).find(x => x !== own); if(ac) return 'acc:' + ac;
+  const nid = (d.match(/(?<!\d)[12]\d{9}(?!\d)/) || [])[0]; if(nid) return 'nid:' + nid;
+  let m = d.match(/[A-Z]{4}SARI\s+(.+?)\s+EXTN/); if(m) return 'name:' + m[1].trim().toUpperCase();
+  m = d.match(/([؀-ۿ]+(?:\s+[؀-ۿ]+)+)\s*$/); if(m && !/تحويل|الاهل/.test(m[1])) return 'name:' + m[1].trim();
+  return null;
+}
+function memberKeys(m){ const ib = String(m.iban || '').replace(/\s/g, '').toUpperCase(), k = []; if(/^\d{10}$/.test(m.national_id || '')) k.push('nid:' + m.national_id);
+  if(/^SA\d{22}$/.test(ib)){ k.push('iban:' + ib); if(ib.slice(4, 6) === '10') k.push('acc:' + ib.slice(-14)); } return k; }
+const keyTxt = k => !k ? 'بدون مرجع' : k.startsWith('acc:') ? 'حساب ' + k.slice(4) : k.startsWith('nid:') ? 'هوية ' + k.slice(4) : k.startsWith('iban:') ? k.slice(5) : k.slice(5);
+const libs = {};
+function loadLib(src){ return libs[src] ||= new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete libs[src]; rej(new Error('تعذّر تحميل أداة قراءة الملف، تأكد من الإنترنت')); }; document.head.appendChild(s); }); }
+const XLSX_URLS = ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
+const PDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+
+async function parsePdfStatement(file){
+  await loadLib(PDF_URL); pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_URL.replace('pdf.min.js', 'pdf.worker.min.js');
+  const doc = await pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise, items = [];
+  for(let p = 1; p <= doc.numPages; p++){ const tc = await (await doc.getPage(p)).getTextContent();
+    for(const it of tc.items){ const s = it.str.normalize('NFKC').trim(); if(s) items.push({p, x: Math.round(it.transform[4]), y: Math.round(it.transform[5]), s}); } }
+  const {own, rows} = pdfRows(items);
+  if(!rows.length) throw new Error('ما قدرت أقرأ حركات من ملف PDF. تأكد إنه كشف حساب من البنك');
+  return rows.filter(r => r.credit && r.amt > 0).map(r => { const [dd, mm, yy] = r.date.split('/'), ymd = `${yy}-${mm}-${dd}`;
+    return {txn_date: ymd, kind: r.type, description: r.lines.join(' · '), amount: Math.round(r.amt*100)/100, balance: r.bal, sender_key: pdfKey(r.lines, own), period: periodOf(ymd) + '-01'}; });
+}
+function pdfRows(items){
+  // items: [{p,x,y,s}] — s already NFKC-normalized
+  const isDate = s => /^\d{2}\/\d{2}\/\d{4}$/.test(s), isNum = s => /^-?[\d,]+\.\d{2}$/.test(s), num = s => +s.replace(/,/g, '');
+  const own = (items.find(i => /^\d{14}$/.test(i.s)) || {}).s || '';
+  const pages = [...new Set(items.map(i => i.p))], rows = [];
+  for(const p of pages){
+    const P = items.filter(i => i.p === p), hb = P.find(i => i.s === 'Balance'), hc = P.find(i => i.s === 'Credit'), hd = P.find(i => i.s === 'Debit');
+    if(!hb || !hc) continue;
+    const foot = Math.max(...P.filter(i => /This statement|^Page:|الصفحة/.test(i.s)).map(i => i.y), -1);
+    const dates = P.filter(i => isDate(i.s) && i.y < hb.y - 3 && i.x > hc.x + 150).sort((a, b) => b.y - a.y);
+    dates.forEach((d, k) => {
+      const yEnd = k + 1 < dates.length ? dates[k + 1].y : foot;
+      const nums = P.filter(i => Math.abs(i.y - d.y) <= 2 && isNum(i.s) && i.x < hc.x + 60).sort((a, b) => a.x - b.x);
+      if(nums.length < 2) return;
+      const bal = num(nums[0].s), amtI = nums[nums.length - 1], amt = num(amtI.s);
+      const xCredit = hd ? (amtI.x >= (hd.x + hc.x) / 2 + 20) : true;
+      const type = (P.find(i => Math.abs(i.y - d.y) <= 2 && i.x > hc.x + 230 && i.x < d.x - 5) || {}).s || '';
+      const lines = P.filter(i => i.y <= d.y + 2 && i.y > yEnd + 2 && i.x > hc.x + 50 && i.x < hc.x + 230).sort((a, b) => b.y - a.y || a.x - b.x).map(i => i.s);
+      rows.push({date: d.s, bal, amt, xCredit, type, lines});
+    });
+  }
+  let prev = null;
+  rows.forEach(r => { r.credit = prev != null && Math.abs(prev + r.amt - r.bal) < 0.02 ? true : prev != null && Math.abs(prev - r.amt - r.bal) < 0.02 ? false : r.xCredit; prev = r.bal; });
+  return {own, rows};
+}
+function pdfKey(lines, own){
+  const t = lines.join(' ');
+  const ib = (t.match(/SA\d{22}/g) || []).find(x => !own || !x.endsWith(own)); if(ib) return 'iban:' + ib;
+  const ac = (t.match(/(?<!\d)\d{14}(?!\d)/g) || []).find(x => x !== own); if(ac) return 'acc:' + ac;
+  const nid = (t.match(/(?<!\d)[12]\d{9}(?!\d)/) || [])[0]; if(nid) return 'nid:' + nid;
+  const bad = /تحويل|الموقع|الاهلي|الأهلي|نظام|نظم|مصاريف|حوالات|رقم|مرجع|المدفوعات|ريال/;
+  for(let k = 0; k < lines.length; k++){
+    let L = lines[k];
+    if(/^[؀-ۿ]+(?:\s+[؀-ۿ]+)+$/.test(L) && !bad.test(L)){
+      if(k + 1 < lines.length && /^[؀-ۿ]{1,3}$/.test(lines[k + 1])) L += lines[k + 1];
+      return 'name:' + L.replace(/\s+/g, ' ').trim();
+    }
+  }
+  for(let k = 1; k < lines.length; k++) if(/^([A-Z]{4}SARI|SASABB)$/.test(lines[k]) && /^[A-Z][A-Z .'-]+$/.test(lines[k - 1])) return 'name:' + lines[k - 1].replace(/\s+/g, ' ').trim();
+  const m = t.match(/[A-Z]{4}SARI\s+(.+?)\s+EXTN/); if(m) return 'name:' + m[1].trim().toUpperCase();
+  return null;
+}
+
+async function parseStatement(file){
+  if(/pdf/i.test(file.type) || /\.pdf$/i.test(file.name)) return parsePdfStatement(file);
+  if(!window.XLSX){ let ok = false; for(const u of XLSX_URLS){ try{ await loadLib(u); ok = true; break; } catch(e){} } if(!ok) throw new Error('تعذّر تحميل أداة قراءة الإكسل، تأكد من الإنترنت'); }
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:''});
+  const h = rows.findIndex(r => r.some(c => /الوصف|Description/i.test(c)) && r.some(c => /تاريخ|Date/i.test(c)));
+  if(h < 0) throw new Error('ما لقيت عناوين الأعمدة (تاريخ / الوصف) في الملف');
+  const H = rows[h].map(c => String(c)), col = re => H.findIndex(c => re.test(c));
+  const cD = col(/تاريخ|Date/i), cT = col(/نوع/), cX = col(/الوصف|Description/i), cA = col(/Amount|المبلغ|دائن|Credit/i), cB = col(/الرصيد|Balance/i);
+  if(cA < 0) throw new Error('ما لقيت عمود المبلغ في الملف');
+  const own = (rows.slice(0, h).flat().join(' ').match(/\b\d{14}\b/) || [])[0] || '';
+  const num = v => typeof v === 'number' ? v : (/\d/.test(String(v)) ? +String(v).replace(/[^\d.-]/g, '') : NaN);
+  const pick = (r, i) => { for(let k = i; k < i + 3 && k < r.length; k++){ const v = num(r[k]); if(!isNaN(v)) return v; } return NaN; };
+  const dt = v => { if(v instanceof Date) return new Date(v.getTime() + 12*3600e3);
+    const m = String(v).match(/(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); if(!m) return null; let [a, b, c] = [+m[1], +m[2], +m[3]];
+    if(a > 999) return new Date(a, b-1, c, 12); if(c < 100) c += 2000; return a > 12 ? new Date(c, b-1, a, 12) : new Date(c, a-1, b, 12); };
+  const out = [];
+  for(const r of rows.slice(h + 1)){
+    const d = dt(r[cD]), a = pick(r, cA); if(!d || !(a > 0)) continue;
+    const desc = String(r[cX] || '').trim(), bal = cB >= 0 ? pick(r, cB) : NaN;
+    out.push({txn_date: ymdL(d), kind: cT >= 0 ? String(r[cT] || '').trim() : '', description: desc, amount: Math.round(a*100)/100,
+      balance: isNaN(bal) ? null : bal, sender_key: senderKey(desc, own), period: periodOf(d) + '-01'});
+  }
+  return out;
+}
+async function readReceipt(file){
+  await loadLib(PDF_URL);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_URL.replace('pdf.min.js', 'pdf.worker.min.js');
+  const doc = await pdfjsLib.getDocument({data: new Uint8Array(await file.arrayBuffer())}).promise;
+  let t = ''; for(let i = 1; i <= Math.min(doc.numPages, 2); i++){ const tc = await (await doc.getPage(i)).getTextContent(); t += ' ' + tc.items.map(x => x.str).join(' '); }
+  t = t.replace(/\s+/g, ' ');
+  const ref = (t.match(/Reference(?: Number| No\.?)?\s*:?\s*([A-Z0-9]{8,})/i) || t.match(/\b(20\d{13,18})\b/) || [])[1] || '';
+  const iban = (t.match(/SA\d{22}/) || [])[0], acc = iban || ((t.match(/\b\d{14}\b/g) || []).find(x => x !== ref) || '');
+  const amt = +((t.match(/Amount\s*:?\s*([\d,]+\.\d{2})/i) || t.match(/([\d,]+\.\d{2})/) || [])[1] || '0').replace(/,/g, '');
+  const dm = t.match(/(\d{2})\/(\d{2})\/(\d{4})/), date = dm ? `${dm[3]}-${dm[2]}-${dm[1]}` : '';
+  return {ref, acc, amt, date};
+}
+function splitPay(R, needSub, due, hasLoan){
+  if(R <= 0) return {s:0, i:0};
+  if(!hasLoan) return {s:R, i:0};
+  if(needSub > 0 && due > 0 && Math.abs(R - due) < 0.01) return {s:0, i:R}; // دفع القسط بالضبط بدون الاشتراك
+  const s = Math.min(R, needSub); return {s, i: Math.round((R - s)*100)/100};
+}
+
+let rcMonth = null, rcBank = null;
+async function viewRecon(){
+  rcMonth = rcMonth || txMonth || nowYM(); rcBank = rcBank || myBanks()[0] || 'ahli';
+  const period = rcMonth + '-01';
+  const [{data: ms, error: e0}, {data: loans}, {data: lines0, error: e1}, {data: claims0, error: e2}, {data: map, error: e3}, {data: txs}] = await Promise.all([
+    sb.from('members').select('*').order('member_no'),
+    sb.from('loans').select('id, member_id, installment, first_due').eq('status','disbursed'),
+    sb.from('bank_lines').select('*').eq('period', period).eq('bank', rcBank).order('txn_date'),
+    sb.from('transfer_claims').select('*').eq('period', period).order('created_at'),
+    sb.from('sender_map').select('*'),
+    sb.from('transactions').select('member_id, kind, amount').eq('period', period)]);
+  const e = e0 || e1 || e2 || e3; if(e) throw new Error(/relation|does not exist|schema cache/.test(e.message || '') ? 'شغّل ملف tawad-recon.sql في Supabase أول' : errMsg(e));
+  const lines = (lines0 || []).filter(l => l.status !== 'ignored'), claims = (claims0 || []).filter(c => c.status !== 'rejected');
+  const byId = {}; (ms||[]).forEach(m => byId[m.id] = m);
+  const keyMem = {}; (ms||[]).forEach(m => memberKeys(m).forEach(k => keyMem[k] = m.id)); (map||[]).forEach(x => keyMem[x.key] = x.member_id);
+  const memOf = l => l.member_id || (l.sender_key && keyMem[l.sender_key]) || null;
+  const loanOf = id => (loans||[]).find(l => l.member_id === id);
+  const dueOf = id => { const l = loanOf(id); return l && (!l.first_due || String(l.first_due).slice(0, 7) <= rcMonth) ? (+l.installment || 0) : 0; };
+  const rec = {}; (txs||[]).forEach(t => { const r = rec[t.member_id] ||= {s:0, i:0}; if(t.kind === 'subscription') r.s += +t.amount; else if(t.kind === 'installment') r.i += +t.amount; });
+  const claimSum = c => +c.sub_amount + +c.inst_amount;
+
+  // ربط تلقائي: مطالبة عضو ما له حركة في الكشف ← حركة مجهولة بنفس الحساب أو نفس المبلغ
+  let auto = 0;
+  for(const c of claims.filter(c => c.status === 'pending')){
+    if(lines.some(l => memOf(l) === c.member_id)) continue;
+    const unk = lines.filter(l => !memOf(l) && l.status === 'new'), fa = String(c.from_account || '').replace(/\s/g, '');
+    let cand = fa ? unk.filter(l => l.sender_key && (l.sender_key.endsWith(fa) || (fa.length === 24 && l.sender_key === 'acc:' + fa.slice(-14)))) : [];
+    if(!cand.length) cand = unk.filter(l => Math.abs(+l.amount - claimSum(c)) < 0.01 && (!c.transfer_date || Math.abs(new Date(l.txn_date) - new Date(c.transfer_date)) <= 3*864e5));
+    if(cand.length !== 1) continue;
+    const l = cand[0]; l.member_id = c.member_id; auto++;
+    await sb.from('bank_lines').update({member_id: c.member_id}).eq('id', l.id);
+    if(l.sender_key) await sb.from('sender_map').upsert({key: l.sender_key, member_id: c.member_id, created_by: me.id, note: 'من مطالبة العضو'});
+  }
+
+  const groups = {}; lines.forEach(l => { const id = memOf(l); if(id) (groups[id] ||= []).push(l); });
+  const unknown = lines.filter(l => !memOf(l) && l.status === 'new');
+  const rows = Object.entries(groups).map(([id, L]) => { id = +id; const m = byId[id] || {id, full_name: '؟'};
+    const total = L.reduce((a, l) => a + +l.amount, 0), r = rec[id] || {s:0, i:0}, R = Math.round((total - r.s - r.i)*100)/100;
+    const c = claims.find(c => c.member_id === id && c.status !== 'approved');
+    const sp = c && Math.abs(claimSum(c) - total) < 0.01 ? {s: Math.max(0, +c.sub_amount - r.s), i: Math.max(0, +c.inst_amount - r.i)} : splitPay(R, Math.max(0, SUB - r.s), Math.max(0, dueOf(id) - r.i), !!loanOf(id));
+    if(!loanOf(id) && sp.i){ sp.s += sp.i; sp.i = 0; }
+    const open = L.some(l => l.status === 'new');
+    const st = !open ? 'done' : R < -0.01 ? 'over' : 'ready';
+    return {m, L, total, r, R, sp, c, st}; }).sort((a, b) => (a.m.member_no || 0) - (b.m.member_no || 0));
+  const ready = rows.filter(x => x.st === 'ready'), lineMembers = new Set(rows.map(x => x.m.id));
+  const review = claims.filter(c => c.status === 'pending' && !lineMembers.has(c.member_id) && (byId[c.member_id]?.bank === rcBank));
+  const silent = (ms||[]).filter(m => (!m.status || m.status === 'active') && m.bank === rcBank && !lineMembers.has(m.id) && !rec[m.id] && !claims.some(c => c.member_id === m.id));
+  const tot = lines.reduce((a, l) => a + +l.amount, 0);
+  const opts = (ms||[]).filter(m => !m.status || m.status === 'active').slice().sort(bankSort).map(m => `<option value="${m.id}">${m.member_no ?? ''} — ${esc(m.full_name)}${m.bank ? ' · ' + BANKS[m.bank] : ''}</option>`).join('');
+
+  $('view').innerHTML = `<div class="card"><div class="row sp"><h2 style="margin:0">مطابقة الحوالات</h2>
+      <div class="row"><label style="margin:0;min-width:150px">الشهر<input type="month" id="rcM" value="${rcMonth}"></label>
+      <label style="margin:0;min-width:130px">الحساب<select id="rcB">${BANK_ORDER.filter(b => b !== 'other').map(b => `<option value="${b}" ${b === rcBank ? 'selected' : ''}>${BANKS[b]}</option>`).join('')}</select></label></div></div>
+    <p class="mut">ارفع كشف الحساب (PDF أو Excel) مثل ما ينزل من البنك أو يوصلك على الإيميل. المنصة تتعرف على المحوّل من رقم حسابه أو آيبانه أو اسمه، وتطابقه مع مطالبات الأعضاء. التحويلات من يوم ${CUT_DAY} وطالع تُحسب للشهر الجاي.</p>
+    <form id="rcF" class="row"><input type="file" name="f" id="rcFile" style="flex:1"><button class="pri">رفع الكشف</button></form><p id="rcErr" class="err" style="margin:8px 0 0"></p></div>
+  <div class="kpis"><div class="kpi"><span class="mut">حركات الكشف لهالشهر</span><b>${lines.length} · ${fmt(tot)}</b></div>
+    <div class="kpi key"><span class="mut">جاهز للاعتماد</span><b>${ready.length}</b></div>
+    <div class="kpi"><span class="mut">ما نعرف صاحبها</span><b style="${unknown.length ? 'color:#b42318' : ''}">${unknown.length}</b></div>
+    <div class="kpi"><span class="mut">مطالبات للمراجعة</span><b style="${review.length ? 'color:#b42318' : ''}">${review.length}</b></div></div>
+  ${auto ? `<div class="rules">ربطنا ${auto} حركة تلقائياً من مطالبات الأعضاء، وانحفظ المحوّل للشهور الجاية.</div>` : ''}
+  ${unknown.length ? `<div class="card highlight"><h2>حركات ما نعرف صاحبها (${unknown.length})</h2><p class="mut">اختر العضو مرة وحدة، والمنصة تحفظ المحوّل وتطابقه بروحها الشهور الجاية.</p>
+    <table class="stack"><thead><tr><th>التاريخ</th><th class="n">المبلغ</th><th>المحوّل</th><th>العضو</th></tr></thead><tbody>${unknown.map(l => `<tr><td>${esc(l.txn_date)}</td><td class="n">${fmt(l.amount)}</td>
+      <td><b>${esc(keyTxt(l.sender_key))}</b><br><span class="mut" style="font-size:12px">${esc(l.kind)} · ${esc(String(l.description).slice(0, 90))}</span></td>
+      <td><select data-lm="${l.id}" style="margin:0"><option value="">— اختر —</option>${opts}</select><div class="row" style="margin-top:6px"><button type="button" class="pri" data-link="${l.id}">ربط</button><button type="button" data-ign="${l.id}">مو اشتراك</button></div></td></tr>`).join('')}</tbody></table></div>` : ''}
+  <div class="card"><div class="row sp"><h2 style="margin:0">المطابقة (${rows.length} عضو)</h2>${ready.length ? `<button type="button" class="pri" id="rcOk">اعتماد الجاهز (${ready.length})</button>` : ''}</div>
+    ${rows.length ? `<table class="stack"><thead><tr><th>العضو</th><th class="n">من الكشف</th><th class="n">مسجل مسبقاً</th><th class="n">اشتراك</th><th class="n">قسط</th><th>الحالة</th></tr></thead><tbody>${rows.map(x => `<tr>
+      <td>${x.m.member_no ?? ''} — ${mLink(x.m.id, x.m.full_name)}${x.c ? ' <span class="chip">عنده مطالبة</span>' : ''}<br><span class="mut" style="font-size:12px">${x.L.map(l => `${esc(l.txn_date.slice(5))}: ${fmt(l.amount)}`).join(' · ')}</span></td>
+      <td class="n">${fmt(x.total)}</td><td class="n">${x.r.s + x.r.i ? fmt(x.r.s + x.r.i) : '—'}</td>
+      <td class="n">${x.st === 'ready' && x.sp.s ? fmt(x.sp.s) : '—'}</td><td class="n">${x.st === 'ready' && x.sp.i ? fmt(x.sp.i) : '—'}</td>
+      <td>${x.st === 'done' ? '<span class="chip okc">✓ معتمد</span>' : x.st === 'over' ? `<span class="chip bad">المسجل أكثر من الكشف بـ ${fmt(-x.R)}</span>` : x.R < 0.01 ? '<span class="chip okc">مطابق للمسجل</span>' : '<span class="chip wait">جاهز</span>'}${x.c && Math.abs(claimSum(x.c) - x.total) >= 0.01 ? `<br><span class="chip bad">المطالبة ${fmt(claimSum(x.c))}</span>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="mut">ما فيه حركات لهالشهر في هالحساب. ارفع الكشف.</p>'}
+    <p class="mut" style="font-size:13px">"مطابق للمسجل" يعني المبلغ تسجل يدوياً من قبل، والاعتماد يقفل الحركة بدون ما يكرر التسجيل.</p></div>
+  ${review.length ? `<div class="card"><h2>مطالبات ما لقيناها في الكشف (${review.length})</h2><table class="stack"><thead><tr><th>العضو</th><th class="n">اشتراك</th><th class="n">قسط</th><th>المرجع</th><th></th></tr></thead><tbody>${review.map(c => `<tr>
+      <td>${mLink(c.member_id, byId[c.member_id]?.full_name)}<br><span class="mut" style="font-size:12px">${c.transfer_date ? esc(c.transfer_date) + ' · ' : ''}${c.from_account ? 'من ' + esc(c.from_account) : ''}</span></td>
+      <td class="n">${fmt(c.sub_amount)}</td><td class="n">${fmt(c.inst_amount)}</td><td>${esc(c.ref || '—')}${c.receipt_path ? ` · <a href="#" data-doc="${esc(c.receipt_path)}">الإشعار</a>` : ''}</td>
+      <td><div class="row"><button type="button" data-cok="${c.id}">اعتماد يدوي</button><button type="button" data-cno="${c.id}">رفض</button></div></td></tr>`).join('')}</tbody></table></div>` : ''}
+  ${silent.length ? `<div class="card"><h2>ما وصل منهم شي (${silent.length})</h2><p>${silent.map(m => `${m.member_no ?? ''} ${mLink(m.id, m.full_name)}`).join(' · ')}</p></div>` : ''}`;
+
+  $('rcM').onchange = e => { rcMonth = e.target.value || rcMonth; render(); };
+  $('rcB').onchange = e => { rcBank = e.target.value; render(); };
+  const doUp = btn => { const f = $('rcFile').files[0]; $('rcErr').textContent = ''; if(!f){ $('rcErr').textContent = 'اختر ملف الكشف أول'; return; }
+    run(btn, async () => { try{
+    $('rcErr').textContent = 'جارٍ قراءة ' + f.name + '…';
+    const parsed = await parseStatement(f); if(!parsed.length) throw new Error('ما لقيت حركات إيداع في الملف');
+    const dates = parsed.map(p => p.txn_date).sort(), {data: ex} = await sb.from('bank_lines').select('txn_date, amount, balance').eq('bank', rcBank).gte('txn_date', dates[0]).lte('txn_date', dates[dates.length - 1]);
+    const seen = new Set((ex || []).map(l => [l.txn_date, +l.amount, l.balance == null ? '' : +l.balance].join('|')));
+    const fresh = parsed.filter(p => !seen.has([p.txn_date, +p.amount, p.balance == null ? '' : +p.balance].join('|')));
+    const rowsIns = fresh.map(p => ({...p, bank: rcBank, hash: [rcBank, p.txn_date, p.amount, p.balance].join('|'), created_by: me.id}));
+    const {data: ins, error} = rowsIns.length ? await sb.from('bank_lines').upsert(rowsIns, {onConflict: 'hash', ignoreDuplicates: true}).select('id') : {data: []}; if(error) throw error;
+    const ps = [...new Set(parsed.map(p => p.period.slice(0, 7)))].sort();
+    toast(`انقرأت ${parsed.length} حركة، الجديد منها ${(ins || []).length}${ps.length > 1 ? ' · الشهور: ' + ps.map(p => monthTxt(p + '-01')).join('، ') : ''}`);
+    if(!ps.includes(rcMonth)) rcMonth = ps[ps.length - 1]; render();
+    } catch(e){ $('rcErr').textContent = 'ما انرفع: ' + errMsg(e); throw e; } }); };
+  $('rcF').onsubmit = ev => { ev.preventDefault(); doUp(ev.submitter); };
+  $('rcFile').onchange = () => doUp($('rcF').querySelector('button'));
+  document.querySelectorAll('[data-link]').forEach(b => b.onclick = () => run(b, async () => {
+    const id = +b.dataset.link, mid = +document.querySelector(`[data-lm="${id}"]`).value; if(!mid) throw new Error('اختر العضو');
+    const l = lines.find(x => x.id === id);
+    const {error} = await sb.from('bank_lines').update({member_id: mid}).eq('id', id); if(error) throw error;
+    if(l.sender_key){ const {error: e2} = await sb.from('sender_map').upsert({key: l.sender_key, member_id: mid, created_by: me.id}); if(e2) throw e2; }
+    toast('تم الربط'); render(); }));
+  document.querySelectorAll('[data-ign]').forEach(b => b.onclick = () => run(b, async () => {
+    const {error} = await sb.from('bank_lines').update({status: 'ignored'}).eq('id', +b.dataset.ign); if(error) throw error; render(); }));
+  bindDocs($('view'));
+  document.querySelectorAll('[data-cno]').forEach(b => b.onclick = () => dialog('رفض المطالبة', '<p>متأكد؟ العضو بيشوفها مرفوضة.</p>', async () => {
+    const {error} = await sb.from('transfer_claims').update({status: 'rejected', decided_by: me.id, decided_at: new Date().toISOString()}).eq('id', +b.dataset.cno); if(error) throw error; render(); }, 'رفض'));
+  document.querySelectorAll('[data-cok]').forEach(b => b.onclick = () => { const c = claims.find(x => x.id === +b.dataset.cok), l = loanOf(c.member_id);
+    dialog('اعتماد يدوي', `<p>بيتسجل لـ <b>${esc(byId[c.member_id]?.full_name)}</b> اشتراك ${fmt(c.sub_amount)} وقسط ${fmt(c.inst_amount)} عن ${monthTxt(period)}، بدون ما يكون في الكشف. تأكد إن المبلغ وصل.</p>`, async () => {
+      const tr = []; if(+c.sub_amount) tr.push({member_id: c.member_id, period, kind: 'subscription', amount: +c.sub_amount, loan_id: null, created_by: me.id, note: 'مطالبة عضو — اعتماد يدوي'});
+      if(+c.inst_amount) tr.push({member_id: c.member_id, period, kind: l ? 'installment' : 'subscription', amount: +c.inst_amount, loan_id: l ? l.id : null, created_by: me.id, note: 'مطالبة عضو — اعتماد يدوي'});
+      if(tr.length){ const {error} = await sb.from('transactions').insert(tr); if(error) throw error; }
+      const {error} = await sb.from('transfer_claims').update({status: 'approved', decided_by: me.id, decided_at: new Date().toISOString()}).eq('id', c.id); if(error) throw error;
+      toast('تم الاعتماد'); render(); }, 'اعتماد'); });
+  if($('rcOk')) $('rcOk').onclick = () => {
+    const tr = []; ready.forEach(x => { const l = loanOf(x.m.id), note = 'مطابقة كشف ' + BANKS[rcBank];
+      if(x.sp.s > 0) tr.push({member_id: x.m.id, period, kind: 'subscription', amount: x.sp.s, loan_id: null, created_by: me.id, note});
+      if(x.sp.i > 0) tr.push({member_id: x.m.id, period, kind: 'installment', amount: x.sp.i, loan_id: l.id, created_by: me.id, note}); });
+    const sum = tr.reduce((a, t) => a + t.amount, 0), closeOnly = ready.length - new Set(tr.map(t => t.member_id)).size;
+    dialog('اعتماد المطابقة — ' + monthTxt(period), `<p>${ready.length} عضو · ${tr.length} حركة جديدة بمجموع <b>${fmt(sum)}</b> ريال${closeOnly ? `<br><span class="mut">${closeOnly} عضو مسجل مسبقاً، بس بيتقفل.</span>` : ''}</p>`, async () => {
+      if(tr.length){ const {error} = await sb.from('transactions').insert(tr); if(error) throw error; }
+      for(const x of ready){ const {error} = await sb.from('bank_lines').update({status: 'approved', member_id: x.m.id}).in('id', x.L.map(l => l.id)); if(error) throw error;
+        if(x.c){ await sb.from('transfer_claims').update({status: 'approved', decided_by: me.id, decided_at: new Date().toISOString()}).eq('id', x.c.id); } }
+      toast('تم اعتماد ' + ready.length + ' عضو'); render(); }, 'اعتماد'); };
+}
+
+// ---------- العضو: تسجيل التحويل ----------
+async function claimCard(m, loan){
+  const {data: cl} = await sb.from('transfer_claims').select('*').eq('member_id', m.id).order('created_at', {ascending:false}).limit(12);
+  const def = periodOf(new Date()), due = loan && (!loan.first_due || String(loan.first_due).slice(0, 7) <= def) ? +loan.installment || 0 : 0;
+  const CST = {pending: '<span class="chip wait">قيد المطابقة</span>', approved: '<span class="chip okc">✓ معتمد</span>', review: '<span class="chip wait">للمراجعة</span>', rejected: '<span class="chip bad">مرفوض</span>'};
+  return `<div class="card"><h2>سجّل تحويلك</h2><p class="mut">التحويل من حسابك المسجل ينطابق مع كشف البنك تلقائياً. سجّله هنا إذا حوّلت من حساب ثاني أو تبي توضّح التحويل، وارفع الإشعار (PDF البنك يتعبّى منه كل شي).</p>
+    <form id="clF"><label>إشعار التحويل<input type="file" name="f" accept="application/pdf,image/*"></label><p id="clHint" class="mut" style="font-size:13px;margin:4px 0"></p>
+    <div class="g2"><label>عن شهر<input type="month" name="p" value="${def}" required></label><label>تاريخ التحويل<input type="date" name="td"></label>
+      <label>اشتراك<input name="s" type="number" min="0" step="0.01" value="${SUB}"></label><label>قسط<input name="i" type="number" min="0" step="0.01" value="${due}" ${loan ? '' : 'disabled'}></label>
+      <label>رقم المرجع<input name="ref" dir="ltr"></label><label>الحساب أو الآيبان المحوّل منه<input name="acc" dir="ltr"></label></div>
+    <button class="pri">إرسال</button></form>
+    ${(cl||[]).length ? `<table class="stack" style="margin-top:12px"><thead><tr><th>الشهر</th><th class="n">المبلغ</th><th>الحالة</th></tr></thead><tbody>${cl.map(c => `<tr><td>${monthTxt(c.period)}</td><td class="n">${fmt(+c.sub_amount + +c.inst_amount)}</td><td>${CST[c.status] || esc(c.status)}</td></tr>`).join('')}</tbody></table>` : ''}</div>`;
+}
+function bindClaim(m, loan){
+  const f = $('clF'); if(!f) return;
+  f.f.onchange = async () => { const file = f.f.files[0]; if(!file || !/pdf/i.test(file.type)) return;
+    $('clHint').textContent = 'جارٍ قراءة الإشعار…';
+    try{ const r = await readReceipt(file);
+      if(r.date){ f.td.value = r.date; f.p.value = periodOf(r.date); }
+      if(r.ref) f.ref.value = r.ref; if(r.acc) f.acc.value = r.acc;
+      if(r.amt > 0){ const s = loan ? Math.min(SUB, r.amt) : r.amt; f.s.value = s; if(loan) f.i.value = Math.round((r.amt - s)*100)/100; }
+      $('clHint').textContent = r.amt ? `قرينا من الإشعار: ${fmt(r.amt)} ريال${r.ref ? ' · مرجع ' + r.ref : ''}. راجع التقسيم بين الاشتراك والقسط.` : 'ما قدرنا نقرأ الإشعار، عبّ البيانات يدوي.';
+    } catch(e){ $('clHint').textContent = 'ما قدرنا نقرأ الإشعار، عبّ البيانات يدوي.'; } };
+  f.onsubmit = e => { e.preventDefault(); const d = new FormData(f); run(e.submitter, async () => {
+    const s = +d.get('s') || 0, i = loan ? (+d.get('i') || 0) : 0; if(s + i <= 0) throw new Error('اكتب المبلغ');
+    const file = d.get('f'), receipt = file && file.size ? await upload(file, `${m.id}/receipts/${d.get('p')}`) : null;
+    const {error} = await sb.from('transfer_claims').insert({member_id: m.id, period: d.get('p') + '-01', sub_amount: s, inst_amount: i, ref: (d.get('ref') || '').trim() || null,
+      from_account: (d.get('acc') || '').replace(/\s/g, '').toUpperCase() || null, transfer_date: d.get('td') || null, receipt_path: receipt});
+    if(error) throw error; toast('وصلت، بتنطابق مع كشف البنك'); render(); }); };
+}
+}
+</script>
+</body>
+</html>
